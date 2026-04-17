@@ -137,6 +137,19 @@ sofaBtn.addEventListener('click', () => {
     // 3. Добавим легкую вибрацию для клика
     tg.HapticFeedback.impactOccurred('light');
 });
+    let itemCount = 0; // Количество товаров в корзине
+    sofaBtn.addEventListener('click', () => {
+    itemCount++; // Увеличиваем счетчик на 1
+    
+    // Обновляем текст на главной кнопке Telegram
+    tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
+    
+    if (!tg.MainButton.isVisible) {
+        tg.MainButton.show();
+    }
+    
+    tg.HapticFeedback.impactOccurred('light');
+});
 </script>
 </body>
 </html>
