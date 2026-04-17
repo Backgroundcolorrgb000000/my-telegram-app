@@ -56,6 +56,25 @@
     padding: 5px 10px;
     cursor: pointer;
 }
+
+        .stepper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.btn-step {
+    background-color: var(--tg-theme-button-color);
+    color: var(--tg-theme-button-text-color);
+    border: none;
+    border-radius: 5px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-weight: bold;
+}
 </style>
 </head>
 <body>
@@ -70,64 +89,33 @@
     <p id="user-name">Ожидание данных...</p>
     <button id="main-action">Нажми меня!</button>
 
+
+    <div class="stepper" id="sofa-stepper">
+    <button class="btn-step" id="sofa-minus">-</button>
+    <span id="sofa-count">0</span>
+    <button class="btn-step" id="sofa-plus">+</button>
+</div>
+
 <script>
-    // 1. Инициализация (делаем один раз в самом начале)
-   const tg = window.Telegram.WebApp;
-// Сначала находим кнопку в HTML и сохраняем её в переменную btn
-const btn = document.getElementById('main-action'); 
-
-tg.expand();
-// Прячем кнопку назад при старте, чтобы она не маячила зря
-tg.BackButton.hide();
-    // 2. Настройка Главной кнопки
-    tg.MainButton.text = "Подтвердить заказ";
-    tg.MainButton.show();
-
-   // 4. Работа с данными пользователя
-const user = tg.initDataUnsafe?.user;
+const tg = window.Telegram.WebApp;
+const btn = document.getElementById('main-action');
+const sofaBtn = document.getElementById('buy-sofa');
 const nameElement = document.getElementById('user-name');
 
-if (user) {
-    // Если данные есть, пишем имя
-    nameElement.innerText = `Привет, ${user.first_name}!`;
-} else {
-    // Если данных нет (например, на ПК), пишем причину
-    nameElement.innerText = "Данные пользователя не найдены (возможно, вы на ПК)";
-}
-    tg.onEvent('themeChanged', function() {
-    tg.showAlert("Цветовая тема изменилась!");
-    // Здесь можно вручную обновить какие-то элементы, 
-    // если переменные var(--tg-theme-...) не справились сами
-});
-    // Показываем кнопку "Назад" в верхнем меню Telegram
-tg.BackButton.show();
-
-// Настраиваем действие при нажатии на неё
-tg.BackButton.onClick(() => {
-    tg.showAlert("Вы нажали кнопку 'Назад'. Здесь мы могли бы вернуть пользователя в каталог.");
-});
-    btn.addEventListener('click', () => {
-    // Скрываем текст приветствия, как будто перешли на новую страницу
-    document.getElementById('user-name').innerText = "Вы перешли в каталог мебели! 🛋️";
-    
-    // Показываем кнопку "Назад"
-    tg.BackButton.show();
-});
-
-// А теперь настроим саму кнопку "Назад"
-tg.BackButton.onClick(() => {
-    // Возвращаем текст
-    document.getElementById('user-name').innerText = `С возвращением, ${tg.initDataUnsafe?.user?.first_name}!`;
-    
-    // Прячем кнопку "Назад", так как мы снова на главной
-    tg.BackButton.hide();
-});
-    // Находим кнопку дивана
-const sofaBtn = document.getElementById('buy-sofa');
+tg.expand();
+tg.BackButton.hide();
 
 let itemCount = 0;
 
-// Создаем одну общую функцию для обновления кнопки
+// 1. Работа с данными пользователя
+const user = tg.initDataUnsafe?.user;
+if (user && nameElement) {
+    nameElement.innerText = `Привет, ${user.first_name}!`;
+} else if (nameElement) {
+    nameElement.innerText = "Данные не найдены (возможно, вы на ПК)";
+}
+
+// 2. Функция обновления Главной кнопки
 function updateMainButton() {
     if (itemCount > 0) {
         tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
@@ -137,22 +125,33 @@ function updateMainButton() {
     }
 }
 
-// Теперь у кнопки только один обработчик
-sofaBtn.addEventListener('click', () => {
-    itemCount++; 
-    tg.HapticFeedback.impactOccurred('light');
-    updateMainButton(); // Вызываем нашу функцию
-});
-    
-    // 2. Показываем кнопку, если она была скрыта
-    if (!tg.MainButton.isVisible) {
-        tg.MainButton.show();
-    }
+// 3. Обработчик для выбора дивана
+if (sofaBtn) {
+    sofaBtn.addEventListener('click', () => {
+        itemCount++;
+        tg.HapticFeedback.impactOccurred('light');
+        updateMainButton();
+    });
+}
 
-    // 3. Добавим легкую вибрацию для клика
-    tg.HapticFeedback.impactOccurred('light');
+// 4. Логика кнопки "Нажми меня" (имитация перехода)
+if (btn) {
+    btn.addEventListener('click', () => {
+        nameElement.innerText = "Вы перешли в каталог мебели! 🛋️";
+        tg.BackButton.show();
+    });
+}
+
+// 5. Логика кнопки "Назад"
+tg.BackButton.onClick(() => {
+    nameElement.innerText = `Привет, ${user?.first_name || 'гость'}!`;
+    tg.BackButton.hide();
 });
-    
+
+// 6. Событие смены темы
+tg.onEvent('themeChanged', () => {
+    tg.showAlert("Цветовая тема изменилась!");
+});
 </script>
 </body>
 </html>
