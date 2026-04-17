@@ -29,7 +29,7 @@
 </style>
 </head>
 <body>
-    <p id="user-name"></p>
+    <p id="user-name">Ожидание данных...</p>
     <button id="main-action">Нажми меня!</button>
 
 <script>
@@ -66,6 +66,11 @@ if (user) {
     // Если данных нет (например, на ПК), пишем причину
     nameElement.innerText = "Данные пользователя не найдены (возможно, вы на ПК)";
 }
+    tg.onEvent('themeChanged', function() {
+    tg.showAlert("Цветовая тема изменилась!");
+    // Здесь можно вручную обновить какие-то элементы, 
+    // если переменные var(--tg-theme-...) не справились сами
+});
 </script>
 </body>
 </html>
