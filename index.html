@@ -122,6 +122,21 @@ tg.BackButton.onClick(() => {
     // Прячем кнопку "Назад", так как мы снова на главной
     tg.BackButton.hide();
 });
+    // Находим кнопку дивана
+const sofaBtn = document.getElementById('buy-sofa');
+
+sofaBtn.addEventListener('click', () => {
+    // 1. Меняем текст главной кнопки
+    tg.MainButton.setText("Купить: Стильный диван (25000 руб.)");
+    
+    // 2. Показываем кнопку, если она была скрыта
+    if (!tg.MainButton.isVisible) {
+        tg.MainButton.show();
+    }
+
+    // 3. Добавим легкую вибрацию для клика
+    tg.HapticFeedback.impactOccurred('light');
+});
 </script>
 </body>
 </html>
