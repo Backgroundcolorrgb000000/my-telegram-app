@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My First TMA</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <h1>Привет, Telegram!</h1>
+    <p id="user-name">Загрузка...</p>
+
+    <script>
+        // Инициализация приложения
+        const tg = window.Telegram.WebApp;
+        tg.expand(); // Разворачивает окно на всю высоту
+
+        // Пробуем достать имя пользователя
+        const user = tg.initDataUnsafe?.user;
+        if (user) {
+            document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
+        }
+    </script>
+</body>
+</html>
