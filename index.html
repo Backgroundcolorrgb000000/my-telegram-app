@@ -54,11 +54,17 @@
         setTimeout(() => { tg.close(); }, 2000);
     });
 
-    // 4. Работа с данными пользователя
-    const user = tg.initDataUnsafe?.user;
-    if (user) {
-        document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
-    }
+   // 4. Работа с данными пользователя
+const user = tg.initDataUnsafe?.user;
+const nameElement = document.getElementById('user-name');
+
+if (user) {
+    // Если данные есть, пишем имя
+    nameElement.innerText = `Привет, ${user.first_name}!`;
+} else {
+    // Если данных нет (например, на ПК), пишем причину
+    nameElement.innerText = "Данные пользователя не найдены (возможно, вы на ПК)";
+}
 </script>
 </body>
 </html>
