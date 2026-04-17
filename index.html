@@ -29,6 +29,20 @@
 </style>
 </head>
 <body>
+    <button id="main-action">Нажми меня!</button>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    const btn = document.getElementById('main-action');
+
+    btn.addEventListener('click', () => {
+        tg.HapticFeedback.impactOccurred('medium'); // Вибрация
+        tg.showAlert("Кнопка нажата! Сейчас приложение закроется.");
+        setTimeout(() => {
+            tg.close(); // Закрыть Mini App
+        }, 2000);
+    });
+</script>
     <h1>Привет, Telegram!</h1>
     <p id="user-name">Загрузка...</p>
 
