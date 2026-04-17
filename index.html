@@ -43,10 +43,25 @@
 
     // 3. Логика для кнопок
     // Для системной кнопки Telegram
-    tg.MainButton.onClick(() => {
-        tg.showAlert("Вы нажали на системную кнопку!");
-    });
+//tg.MainButton.onClick(() => {
+  //      tg.showAlert("Вы нажали на системную кнопку!");
+   // });
+btn.addEventListener('click', () => {
+    // Скрываем текст приветствия, как будто перешли на новую страницу
+    document.getElementById('user-name').innerText = "Вы перешли в каталог мебели! 🛋️";
+    
+    // Показываем кнопку "Назад"
+    tg.BackButton.show();
+});
 
+// А теперь настроим саму кнопку "Назад"
+tg.BackButton.onClick(() => {
+    // Возвращаем текст
+    document.getElementById('user-name').innerText = `С возвращением, ${tg.initDataUnsafe?.user?.first_name}!`;
+    
+    // Прячем кнопку "Назад", так как мы снова на главной
+    tg.BackButton.hide();
+});
     // Для твоей кнопки в HTML (Нажми меня!)
     const btn = document.getElementById('main-action');
     btn.addEventListener('click', () => {
