@@ -45,19 +45,6 @@ tg.BackButton.hide();
     tg.MainButton.text = "Подтвердить заказ";
     tg.MainButton.show();
 
-    // 3. Логика для кнопок
-    // Для системной кнопки Telegram
-//tg.MainButton.onClick(() => {
-  //      tg.showAlert("Вы нажали на системную кнопку!");
-   // });
-    // Для твоей кнопки в HTML (Нажми меня!)
-    const btn = document.getElementById('main-action');
-    btn.addEventListener('click', () => {
-        tg.HapticFeedback.impactOccurred('medium'); 
-        tg.showAlert("Кнопка нажата! Сейчас приложение закроется.");
-        setTimeout(() => { tg.close(); }, 2000);
-    });
-
    // 4. Работа с данными пользователя
 const user = tg.initDataUnsafe?.user;
 const nameElement = document.getElementById('user-name');
