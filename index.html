@@ -1,157 +1,145 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>My First TMA</title>
+    <title>Furniture Store</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-    body {
-        /* Используем системные цвета Telegram */
-        background-color: var(--tg-theme-bg-color);
-        color: var(--tg-theme-text-color);
-        font-family: sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        margin: 0;
-    }
+        :root {
+            --bg: var(--tg-theme-bg-color, #ffffff);
+            --text: var(--tg-theme-text-color, #222222);
+            --hint: var(--tg-theme-hint-color, #999999);
+            --btn: var(--tg-theme-button-color, #248bed);
+            --btn-text: var(--tg-theme-button-text-color, #ffffff);
+            --sec-bg: var(--tg-theme-secondary-bg-color, #f4f4f5);
+        }
 
-    button {
-        /* Кнопка тоже будет подстраиваться под тему */
-        background-color: var(--tg-theme-button-color);
-        color: var(--tg-theme-button-text-color);
-        border: none;
-        border-radius: 8px;
-        padding: 10px 20px;
-        cursor: pointer;
-    }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
         .container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-around;
-    padding: 10px;
-}
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            width: 100%;
+        }
 
-.item {
-    width: 45%;
-    background-color: var(--tg-theme-secondary-bg-color);
-    border-radius: 10px;
-    padding: 10px;
-    margin-bottom: 15px;
-    text-align: center;
-    color: var(--tg-theme-text-color);
-}
+        .item {
+            width: 45%;
+            background-color: var(--sec-bg);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
 
-.img {
-    width: 100%;
-    border-radius: 8px;
-}
-
-.btn-add {
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
-    border: none;
-    border-radius: 5px;
-    padding: 5px 10px;
-    cursor: pointer;
-}
+        .img { width: 100%; border-radius: 8px; }
+        
+        #user-name { color: var(--hint); margin: 20px 0; font-size: 14px; }
 
         .stepper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-}
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
 
-.btn-step {
-    background-color: var(--tg-theme-button-color);
-    color: var(--tg-theme-button-text-color);
-    border: none;
-    border-radius: 5px;
-    width: 30px;
-    height: 30px;
-    cursor: pointer;
-    font-weight: bold;
-}
-</style>
+        .btn-step {
+            background-color: var(--btn);
+            color: var(--btn-text);
+            border: none;
+            border-radius: 50%; /* Сделаем кнопки круглыми для красоты */
+            width: 32px;
+            height: 32px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .count-display { font-weight: bold; min-width: 20px; }
+    </style>
 </head>
 <body>
-    <div id="item-list" class="container">
-    <div class="item">
-        <img src="https://via.placeholder.com/150" alt="Диван" class="img">
-        <p>Стильный диван</p>
-        <p><b>25000 руб.</b></p>
-        <button class="btn-add" id="buy-sofa">Выбрать</button>
-    </div>
-    </div>
-    <p id="user-name">Ожидание данных...</p>
-    <button id="main-action">Нажми меня!</button>
 
+    <p id="user-name">Загрузка...</p>
 
-    <div class="stepper" id="sofa-stepper">
-    <button class="btn-step" id="sofa-minus">-</button>
-    <span id="sofa-count">0</span>
-    <button class="btn-step" id="sofa-plus">+</button>
-</div>
+    <div class="container">
+        <div class="item">
+            <img src="https://via.placeholder.com/150" alt="Диван" class="img">
+            <p>Стильный диван</p>
+            <p><b>25000 руб.</b></p>
+            
+            <div class="stepper">
+                <button class="btn-step" id="sofa-minus">-</button>
+                <span class="count-display" id="sofa-count">0</span>
+                <button class="btn-step" id="sofa-plus">+</button>
+            </div>
+        </div>
+    </div>
 
 <script>
-const tg = window.Telegram.WebApp;
-const btn = document.getElementById('main-action');
-const sofaBtn = document.getElementById('buy-sofa');
-const nameElement = document.getElementById('user-name');
+    const tg = window.Telegram.WebApp;
+    tg.expand();
 
-tg.expand();
-tg.BackButton.hide();
+    // Элементы
+    const nameElement = document.getElementById('user-name');
+    const countElement = document.getElementById('sofa-count');
+    const btnPlus = document.getElementById('sofa-plus');
+    const btnMinus = document.getElementById('sofa-minus');
 
-let itemCount = 0;
+    let itemCount = 0;
 
-// 1. Работа с данными пользователя
-const user = tg.initDataUnsafe?.user;
-if (user && nameElement) {
-    nameElement.innerText = `Привет, ${user.first_name}!`;
-} else if (nameElement) {
-    nameElement.innerText = "Данные не найдены (возможно, вы на ПК)";
-}
+    // 1. Приветствие
+    const user = tg.initDataUnsafe?.user;
+    nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Данные не найдены";
 
-// 2. Функция обновления Главной кнопки
-function updateMainButton() {
-    if (itemCount > 0) {
-        tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
-        tg.MainButton.show();
-    } else {
-        tg.MainButton.hide();
+    // 2. Обновление интерфейса
+    function render() {
+        // Обновляем цифру на странице
+        countElement.innerText = itemCount;
+
+        // Обновляем Главную кнопку Telegram
+        if (itemCount > 0) {
+            tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
+            tg.MainButton.show();
+        } else {
+            tg.MainButton.hide();
+        }
     }
-}
 
-// 3. Обработчик для выбора дивана
-if (sofaBtn) {
-    sofaBtn.addEventListener('click', () => {
+    // 3. Логика кнопок
+    btnPlus.addEventListener('click', () => {
         itemCount++;
         tg.HapticFeedback.impactOccurred('light');
-        updateMainButton();
+        render();
     });
-}
 
-// 4. Логика кнопки "Нажми меня" (имитация перехода)
-if (btn) {
-    btn.addEventListener('click', () => {
-        nameElement.innerText = "Вы перешли в каталог мебели! 🛋️";
-        tg.BackButton.show();
+    btnMinus.addEventListener('click', () => {
+        if (itemCount > 0) {
+            itemCount--;
+            tg.HapticFeedback.impactOccurred('light');
+            render();
+        }
     });
-}
 
-// 5. Логика кнопки "Назад"
-tg.BackButton.onClick(() => {
-    nameElement.innerText = `Привет, ${user?.first_name || 'гость'}!`;
-    tg.BackButton.hide();
-});
+    // 4. Обработка системных кнопок
+    tg.MainButton.onClick(() => {
+        tg.showAlert(`Вы оформили заказ на ${itemCount} тов.`);
+    });
 
-// 6. Событие смены темы
-tg.onEvent('themeChanged', () => {
-    tg.showAlert("Цветовая тема изменилась!");
-});
+    tg.onEvent('themeChanged', () => render());
+
 </script>
 </body>
 </html>
