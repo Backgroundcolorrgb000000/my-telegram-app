@@ -3,6 +3,30 @@
 <head>
     <title>My First TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+    body {
+        /* Используем системные цвета Telegram */
+        background-color: var(--tg-theme-bg-color);
+        color: var(--tg-theme-text-color);
+        font-family: sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+    }
+
+    button {
+        /* Кнопка тоже будет подстраиваться под тему */
+        background-color: var(--tg-theme-button-color);
+        color: var(--tg-theme-button-text-color);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        cursor: pointer;
+    }
+</style>
 </head>
 <body>
     <h1>Привет, Telegram!</h1>
