@@ -32,38 +32,33 @@
     <button id="main-action">Нажми меня!</button>
 
 <script>
+    // 1. Инициализация (делаем один раз в самом начале)
     const tg = window.Telegram.WebApp;
-    const btn = document.getElementById('main-action');
+    tg.expand(); 
 
-    btn.addEventListener('click', () => {
-        tg.HapticFeedback.impactOccurred('medium'); // Вибрация
-        tg.showAlert("Кнопка нажата! Сейчас приложение закроется.");
-        setTimeout(() => {
-            tg.close(); // Закрыть Mini App
-        }, 2000);
+    // 2. Настройка Главной кнопки
+    tg.MainButton.text = "Подтвердить заказ";
+    tg.MainButton.show();
+
+    // 3. Логика для кнопок
+    // Для системной кнопки Telegram
+    tg.MainButton.onClick(() => {
+        tg.showAlert("Вы нажали на системную кнопку!");
     });
-     // Показываем главную кнопку
-tg.MainButton.text = "Подтвердить заказ"; // Текст на кнопке
-tg.MainButton.show(); // Делаем её видимой
 
-// Вешаем событие на нажатие
-tg.MainButton.onClick(() => {
-    tg.showAlert("Вы нажали на системную кнопку!");
-});
+    // Для твоей кнопки в HTML (Нажми меня!)
+    const btn = document.getElementById('main-action');
+    btn.addEventListener('click', () => {
+        tg.HapticFeedback.impactOccurred('medium'); 
+        tg.showAlert("Кнопка нажата! Сейчас приложение закроется.");
+        setTimeout(() => { tg.close(); }, 2000);
+    });
+
+    // 4. Работа с данными пользователя
+    const user = tg.initDataUnsafe?.user;
+    if (user) {
+        document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
+    }
 </script>
-    <h1>Привет, Telegram!</h1>
-    <p id="user-name">Загрузка...</p>
-
-    <script>
-        // Инициализация приложения
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачивает окно на всю высоту
-
-        // Пробуем достать имя пользователя
-        const user = tg.initDataUnsafe?.user;
-        if (user) {
-            document.getElementById('user-name').innerText = `Привет, ${user.first_name}!`;
-        }
-    </script>
 </body>
 </html>
