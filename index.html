@@ -125,9 +125,24 @@ tg.BackButton.onClick(() => {
     // Находим кнопку дивана
 const sofaBtn = document.getElementById('buy-sofa');
 
+let itemCount = 0;
+
+// Создаем одну общую функцию для обновления кнопки
+function updateMainButton() {
+    if (itemCount > 0) {
+        tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
+        tg.MainButton.show();
+    } else {
+        tg.MainButton.hide();
+    }
+}
+
+// Теперь у кнопки только один обработчик
 sofaBtn.addEventListener('click', () => {
-    // 1. Меняем текст главной кнопки
-    tg.MainButton.setText("Купить: Стильный диван (25000 руб.)");
+    itemCount++; 
+    tg.HapticFeedback.impactOccurred('light');
+    updateMainButton(); // Вызываем нашу функцию
+});
     
     // 2. Показываем кнопку, если она была скрыта
     if (!tg.MainButton.isVisible) {
@@ -137,19 +152,7 @@ sofaBtn.addEventListener('click', () => {
     // 3. Добавим легкую вибрацию для клика
     tg.HapticFeedback.impactOccurred('light');
 });
-    let itemCount = 0; // Количество товаров в корзине
-    sofaBtn.addEventListener('click', () => {
-    itemCount++; // Увеличиваем счетчик на 1
     
-    // Обновляем текст на главной кнопке Telegram
-    tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
-    
-    if (!tg.MainButton.isVisible) {
-        tg.MainButton.show();
-    }
-    
-    tg.HapticFeedback.impactOccurred('light');
-});
 </script>
 </body>
 </html>
