@@ -34,9 +34,13 @@
 
 <script>
     // 1. Инициализация (делаем один раз в самом начале)
-    const tg = window.Telegram.WebApp;
-    tg.expand(); 
+   const tg = window.Telegram.WebApp;
+// Сначала находим кнопку в HTML и сохраняем её в переменную btn
+const btn = document.getElementById('main-action'); 
 
+tg.expand();
+// Прячем кнопку назад при старте, чтобы она не маячила зря
+tg.BackButton.hide();
     // 2. Настройка Главной кнопки
     tg.MainButton.text = "Подтвердить заказ";
     tg.MainButton.show();
