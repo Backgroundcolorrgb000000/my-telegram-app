@@ -32,14 +32,6 @@
     <button id="main-action">Нажми меня!</button>
 
 <script>
-        // Показываем главную кнопку
-tg.MainButton.text = "Подтвердить заказ"; // Текст на кнопке
-tg.MainButton.show(); // Делаем её видимой
-
-// Вешаем событие на нажатие
-tg.MainButton.onClick(() => {
-    tg.showAlert("Вы нажали на системную кнопку!");
-});
     const tg = window.Telegram.WebApp;
     const btn = document.getElementById('main-action');
 
@@ -50,6 +42,14 @@ tg.MainButton.onClick(() => {
             tg.close(); // Закрыть Mini App
         }, 2000);
     });
+     // Показываем главную кнопку
+tg.MainButton.text = "Подтвердить заказ"; // Текст на кнопке
+tg.MainButton.show(); // Делаем её видимой
+
+// Вешаем событие на нажатие
+tg.MainButton.onClick(() => {
+    tg.showAlert("Вы нажали на системную кнопку!");
+});
 </script>
     <h1>Привет, Telegram!</h1>
     <p id="user-name">Загрузка...</p>
