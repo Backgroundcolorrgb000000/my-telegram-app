@@ -4,18 +4,9 @@
     <title>Furniture Store TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root {
-            --bg: var(--tg-theme-bg-color, #ffffff);
-            --text: var(--tg-theme-text-color, #222222);
-            --hint: var(--tg-theme-hint-color, #999999);
-            --btn: var(--tg-theme-button-color, #248bed);
-            --btn-text: var(--tg-theme-button-text-color, #ffffff);
-            --sec-bg: var(--tg-theme-secondary-bg-color, #f4f4f5);
-        }
-
         body {
-            background-color: var(--bg);
-            color: var(--text);
+            background-color: var(--tg-theme-bg-color, #fff);
+            color: var(--tg-theme-text-color, #000);
             font-family: sans-serif;
             margin: 0;
             padding: 15px;
@@ -27,22 +18,26 @@
         .container {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
-            justify-content: center;
+            justify-content: space-around;
+            gap: 10px;
             width: 100%;
         }
 
         .item {
-            width: 42%;
-            background-color: var(--sec-bg);
+            width: 45%;
+            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
             border-radius: 12px;
             padding: 10px;
+            margin-bottom: 10px;
             text-align: center;
+            box-sizing: border-box;
         }
 
-        .img { width: 100%; border-radius: 8px; margin-bottom: 10px; }
-        
-        #user-name { color: var(--hint); margin-bottom: 20px; text-align: center; }
+        .img {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 5px;
+        }
 
         .stepper {
             display: flex;
@@ -53,20 +48,25 @@
         }
 
         .btn-step {
-            background-color: var(--btn);
-            color: var(--btn-text);
+            background-color: var(--tg-theme-button-color, #248bed);
+            color: var(--tg-theme-button-text-color, #ffffff);
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             width: 30px;
             height: 30px;
             cursor: pointer;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            font-weight: bold;
         }
 
-        .count-display { font-weight: bold; min-width: 15px; }
+        .count-display {
+            font-weight: bold;
+            min-width: 15px;
+        }
+
+        #user-name {
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -78,27 +78,66 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // 1. Данные товаров
+    const nameElement = document.getElementById('user-name');
+    const itemList = document.getElementById('item-list');
+
+    // 1. Наш каталог товаров
     const products = [
-        { id: 'sofa', name: 'Диван', price: 25000, img: 'https://via.placeholder.com/150' },
-        { id: 'chair', name: 'Кресло', price: 15000, img: 'https://via.placeholder.com/150' },
-        { id: 'table', name: 'Стол', price: 10000, img: 'https://via.placeholder.com/150' }
+        { id: 'sofa', name: 'Стильный диван', price: 25000, img: 'https://via.placeholder.com/150' },
+        { id: 'chair', name: 'Мягкое кресло', price: 15000, img: 'https://via.placeholder.com/150' },
+        { id: 'table', name: 'Обеденный стол', price: 10000, img: 'https://via.placeholder.com/150' }
     ];
 
-    let cart = {}; // Храним количество: { sofa: 1, chair: 2 }
+    // 2. Объект корзины (хранит id_товара: количество)
+    let cart = {};
 
-    // 2. Отображение приветствия
+    // Данные пользователя
     const user = tg.initDataUnsafe?.user;
-    document.getElementById('user-name').innerText = user ? `Привет, ${user.first_name}!` : "Привет, Гость!";
+    nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Привет, Гость!";
 
-    // 3. Функция подсчета итога и обновления кнопки Telegram
+    // 3. Функция для изменения количества
+    function changeCount(productId, delta) {
+        if (!cart[productId]) cart[productId] = 0;
+        
+        cart[productId] += delta;
+
+        if (cart[productId] < 0) cart[productId] = 0;
+
+        tg.HapticFeedback.impactOccurred('light');
+        renderProducts();
+        updateCartTotal();
+    }
+
+    // 4. Функция отрисовки товаров
+    function renderProducts() {
+        itemList.innerHTML = '';
+
+        products.forEach(product => {
+            const count = cart[product.id] || 0;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'item';
+            itemDiv.innerHTML = `
+                <img src="${product.img}" class="img">
+                <p style="margin: 5px 0;">${product.name}</p>
+                <p><b>${product.price} руб.</b></p>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeCount('${product.id}', -1)">-</button>
+                    <span class="count-display">${count}</span>
+                    <button class="btn-step" onclick="changeCount('${product.id}', 1)">+</button>
+                </div>
+            `;
+            itemList.appendChild(itemDiv);
+        });
+    }
+
+    // 5. Функция подсчета итога для MainButton
     function updateCartTotal() {
         let totalPrice = 0;
         let totalCount = 0;
 
         for (let id in cart) {
             const product = products.find(p => p.id === id);
-            if (product && cart[id] > 0) {
+            if (product) {
                 totalPrice += product.price * cart[id];
                 totalCount += cart[id];
             }
@@ -112,51 +151,9 @@
         }
     }
 
-    // 4. Функция отрисовки товаров
-    function renderProducts() {
-        const itemList = document.getElementById('item-list');
-        itemList.innerHTML = '';
-
-        products.forEach(product => {
-            const count = cart[product.id] || 0;
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'item';
-            itemDiv.innerHTML = `
-                <img src="${product.img}" class="img">
-                <div style="font-size: 14px; margin-bottom: 5px;">${product.name}</div>
-                <div style="font-size: 12px; font-weight: bold;">${product.price} ₽</div>
-                <div class="stepper">
-                    <button class="btn-step" onclick="changeCount('${product.id}', -1)">-</button>
-                    <span class="count-display">${count}</span>
-                    <button class="btn-step" onclick="changeCount('${product.id}', 1)">+</button>
-                </div>
-            `;
-            itemList.appendChild(itemDiv);
-        });
-    }
-
-    // 5. Логика изменения количества
-    window.changeCount = function(productId, delta) {
-        if (!cart[productId]) cart[productId] = 0;
-        
-        cart[productId] += delta;
-        if (cart[productId] < 0) cart[productId] = 0;
-
-        tg.HapticFeedback.impactOccurred('light');
-        renderProducts();
-        updateCartTotal();
-    };
-
-    // 6. Клик по главной кнопке
+    // Обработка нажатия на главную кнопку
     tg.MainButton.onClick(() => {
-        let summary = "Ваш заказ:\n";
-        for (let id in cart) {
-            if (cart[id] > 0) {
-                const p = products.find(item => item.id === id);
-                summary += `- ${p.name}: ${cart[id]} шт.\n`;
-            }
-        }
-        tg.showAlert(summary);
+        tg.showAlert("Заказ отправлен в обработку!");
     });
 
     // Запуск приложения
