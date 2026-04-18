@@ -150,18 +150,19 @@ function updateCartTotal() {
 }
 
 // 6. Отправка заказа
-tg.MainButton.onClick(() => {
-    tg.showConfirm("Вы уверены, что хотите оформить заказ?", (isConfirmed) => {
-        if (isConfirmed) {
-            const orderData = {
-                products: cart,
-                totalPrice: finalPriceWithDiscount
-            };
-            tg.sendData(JSON.stringify(orderData));
+bot.start((ctx) => {
+    ctx.reply('Нажми на кнопку ниже, чтобы открыть магазин. Только так заказ сможет отправиться!', {
+        reply_markup: {
+            keyboard: [
+                [{ 
+                    text: "🛒 Открыть магазин", 
+                    web_app: { url: 'https://ТВОЯ_ССЫЛКА_НА_САЙТ.com' } 
+                }]
+            ],
+            resize_keyboard: true // Чтобы кнопка не была огромной
         }
     });
 });
-
 // Запуск
 renderProducts();
 updateCartTotal();
