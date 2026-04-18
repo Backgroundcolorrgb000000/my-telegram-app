@@ -132,24 +132,28 @@
 
     // 5. Функция подсчета итога для MainButton
     function updateCartTotal() {
-        let totalPrice = 0.9;
-        let totalCount = 0;
+       let totalPrice = 0; // Начинаем с нуля
+    let totalCount = 0;
 
-        for (let id in cart) {
-            const product = products.find(p => p.id === id);
-            if (product) {
-                totalPrice += product.price * cart[id];
-                totalCount += cart[id];
-            }
-        }
-
-        if (totalCount > 0) {
-            tg.MainButton.setText(`Оформить заказ: ${totalPrice} руб.`);
-            tg.MainButton.show();
-        } else {
-            tg.MainButton.hide();
+    for (let id in cart) {
+        const product = products.find(p => p.id === id);
+        if (product) {
+            totalPrice += product.price * cart[id];
+            totalCount += cart[id];
         }
     }
+
+    // Применяем скидку 10% ТОЛЬКО в конце расчетов
+    const discountedPrice = totalPrice * 0.9;
+
+    if (totalCount > 0) {
+        // Выводим цену со скидкой
+        tg.MainButton.setText(`Оформить заказ: ${discountedPrice} руб. (скидка 10%)`);
+        tg.MainButton.show();
+    } else {
+        tg.MainButton.hide();
+    }
+}
 
     // Обработка нажатия на главную кнопку
     tg.MainButton.onClick(() => {
