@@ -105,6 +105,35 @@ let cart = {};
 
 
 
+
+
+function changeCount(productId, delta) {
+    // 1. Инициализируем товар в корзине, если его там еще нет
+    if (!cart[productId]) {
+        cart[productId] = 0;
+    }
+
+    // 2. Изменяем количество
+    cart[productId] += delta;
+
+    // 3. Проверка: нельзя купить меньше 0 товаров
+    if (cart[productId] < 0) {
+        cart[productId] = 0;
+    }
+
+    // 4. После изменения данных нужно перерисовать экран
+    renderProducts();
+    
+    // 5. И обновить главную кнопку Telegram
+    updateCartTotal();
+    
+    tg.HapticFeedback.impactOccurred('light');
+}
+
+    
+
+    
+
     const itemList = document.getElementById('item-list');
 
 function renderProducts() {
