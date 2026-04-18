@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Furniture Store</title>
+    <title>Furniture Store TMA</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         :root {
@@ -16,9 +16,9 @@
         body {
             background-color: var(--bg);
             color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -33,23 +33,22 @@
         }
 
         .item {
-            width: 45%;
+            width: 42%;
             background-color: var(--sec-bg);
             border-radius: 12px;
             padding: 10px;
             text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
 
-        .img { width: 100%; border-radius: 8px; }
+        .img { width: 100%; border-radius: 8px; margin-bottom: 10px; }
         
-        #user-name { color: var(--hint); margin: 20px 0; font-size: 14px; }
+        #user-name { color: var(--hint); margin-bottom: 20px; text-align: center; }
 
         .stepper {
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 15px;
+            gap: 10px;
             margin-top: 10px;
         }
 
@@ -57,9 +56,9 @@
             background-color: var(--btn);
             color: var(--btn-text);
             border: none;
-            border-radius: 50%; /* Сделаем кнопки круглыми для красоты */
-            width: 32px;
-            height: 32px;
+            border-radius: 8px;
+            width: 30px;
+            height: 30px;
             cursor: pointer;
             font-size: 18px;
             display: flex;
@@ -67,143 +66,102 @@
             justify-content: center;
         }
 
-        .count-display { font-weight: bold; min-width: 20px; }
+        .count-display { font-weight: bold; min-width: 15px; }
     </style>
 </head>
 <body>
 
     <p id="user-name">Загрузка...</p>
-
-    <div class="container">
-        <div class="item">
-            <div class="stepper">
-            </div>
-        </div>
-    </div>
+    <div id="item-list" class="container"></div>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // Элементы
-    const nameElement = document.getElementById('user-name');
-    const countElement = document.getElementById('sofa-count');
-    const btnPlus = document.getElementById('sofa-plus');
-    const btnMinus = document.getElementById('sofa-minus');
-
-    let itemCount = 0;
-    
+    // 1. Данные товаров
     const products = [
-    { id: 'sofa', name: 'Стильный диван', price: 25000, img: 'https://via.placeholder.com/150' },
-    { id: 'chair', name: 'Мягкое кресло', price: 15000, img: 'https://via.placeholder.com/150' },
-    { id: 'table', name: 'Обеденный стол', price: 10000, img: 'https://via.placeholder.com/150' }
-];
+        { id: 'sofa', name: 'Диван', price: 25000, img: 'https://via.placeholder.com/150' },
+        { id: 'chair', name: 'Кресло', price: 15000, img: 'https://via.placeholder.com/150' },
+        { id: 'table', name: 'Стол', price: 10000, img: 'https://via.placeholder.com/150' }
+    ];
 
-// Здесь мы будем хранить количество выбранных товаров
-// Например: { 'sofa': 2, 'chair': 1 }
-let cart = {};
+    let cart = {}; // Храним количество: { sofa: 1, chair: 2 }
 
-
-
-
-
-function changeCount(productId, delta) {
-    // 1. Инициализируем товар в корзине, если его там еще нет
-    if (!cart[productId]) {
-        cart[productId] = 0;
-    }
-
-    // 2. Изменяем количество
-    cart[productId] += delta;
-
-    // 3. Проверка: нельзя купить меньше 0 товаров
-    if (cart[productId] < 0) {
-        cart[productId] = 0;
-    }
-
-    // 4. После изменения данных нужно перерисовать экран
-    renderProducts();
-    
-    // 5. И обновить главную кнопку Telegram
-    updateCartTotal();
-    
-    tg.HapticFeedback.impactOccurred('light');
-}
-
-    
-
-    
-
-    const itemList = document.getElementById('item-list');
-
-function renderProducts() {
-    itemList.innerHTML = ''; // Очищаем список перед отрисовкой
-
-    products.forEach(product => {
-        // Создаем карточку товара
-        const itemDiv = document.createElement('div');
-        itemDiv.classList.add('item');
-
-        // Получаем текущее количество этого товара в корзине (или 0)
-        const count = cart[product.id] || 0;
-
-        // Наполняем карточку содержимым
-        itemDiv.innerHTML = `
-            <img src="${product.img}" alt="${product.name}" class="img">
-            <p>${product.name}</p>
-            <p><b>${product.price} руб.</b></p>
-            <div class="stepper">
-                <button class="btn-step" onclick="changeCount('${product.id}', -1)">-</button>
-                <span class="count-display">${count}</span>
-                <button class="btn-step" onclick="changeCount('${product.id}', 1)">+</button>
-            </div>
-        `;
-        
-        itemList.appendChild(itemDiv);
-    });
-}
-
-    
-
-    // 1. Приветствие
+    // 2. Отображение приветствия
     const user = tg.initDataUnsafe?.user;
-    nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Данные не найдены";
+    document.getElementById('user-name').innerText = user ? `Привет, ${user.first_name}!` : "Привет, Гость!";
 
-    // 2. Обновление интерфейса
-    function render() {
-        // Обновляем цифру на странице
-        countElement.innerText = itemCount;
+    // 3. Функция подсчета итога и обновления кнопки Telegram
+    function updateCartTotal() {
+        let totalPrice = 0;
+        let totalCount = 0;
 
-        // Обновляем Главную кнопку Telegram
-        if (itemCount > 0) {
-            tg.MainButton.setText(`Перейти в корзину (${itemCount})`);
+        for (let id in cart) {
+            const product = products.find(p => p.id === id);
+            if (product && cart[id] > 0) {
+                totalPrice += product.price * cart[id];
+                totalCount += cart[id];
+            }
+        }
+
+        if (totalCount > 0) {
+            tg.MainButton.setText(`Оформить заказ: ${totalPrice} руб.`);
             tg.MainButton.show();
         } else {
             tg.MainButton.hide();
         }
     }
 
-    // 3. Логика кнопок
-    btnPlus.addEventListener('click', () => {
-        itemCount++;
+    // 4. Функция отрисовки товаров
+    function renderProducts() {
+        const itemList = document.getElementById('item-list');
+        itemList.innerHTML = '';
+
+        products.forEach(product => {
+            const count = cart[product.id] || 0;
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'item';
+            itemDiv.innerHTML = `
+                <img src="${product.img}" class="img">
+                <div style="font-size: 14px; margin-bottom: 5px;">${product.name}</div>
+                <div style="font-size: 12px; font-weight: bold;">${product.price} ₽</div>
+                <div class="stepper">
+                    <button class="btn-step" onclick="changeCount('${product.id}', -1)">-</button>
+                    <span class="count-display">${count}</span>
+                    <button class="btn-step" onclick="changeCount('${product.id}', 1)">+</button>
+                </div>
+            `;
+            itemList.appendChild(itemDiv);
+        });
+    }
+
+    // 5. Логика изменения количества
+    window.changeCount = function(productId, delta) {
+        if (!cart[productId]) cart[productId] = 0;
+        
+        cart[productId] += delta;
+        if (cart[productId] < 0) cart[productId] = 0;
+
         tg.HapticFeedback.impactOccurred('light');
-        render();
-    });
+        renderProducts();
+        updateCartTotal();
+    };
 
-    btnMinus.addEventListener('click', () => {
-        if (itemCount > 0) {
-            itemCount--;
-            tg.HapticFeedback.impactOccurred('light');
-            render();
-        }
-    });
-
-    // 4. Обработка системных кнопок
+    // 6. Клик по главной кнопке
     tg.MainButton.onClick(() => {
-        tg.showAlert(`Вы оформили заказ на ${itemCount} тов.`);
+        let summary = "Ваш заказ:\n";
+        for (let id in cart) {
+            if (cart[id] > 0) {
+                const p = products.find(item => item.id === id);
+                summary += `- ${p.name}: ${cart[id]} шт.\n`;
+            }
+        }
+        tg.showAlert(summary);
     });
 
-    tg.onEvent('themeChanged', () => render());
+    // Запуск приложения
+    renderProducts();
+    updateCartTotal();
 
 </script>
 </body>
