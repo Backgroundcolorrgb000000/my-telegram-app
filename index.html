@@ -76,14 +76,7 @@
 
     <div class="container">
         <div class="item">
-            <img src="https://via.placeholder.com/150" alt="Диван" class="img">
-            <p>Стильный диван</p>
-            <p><b>25000 руб.</b></p>
-            
             <div class="stepper">
-                <button class="btn-step" id="sofa-minus">-</button>
-                <span class="count-display" id="sofa-count">0</span>
-                <button class="btn-step" id="sofa-plus">+</button>
             </div>
         </div>
     </div>
@@ -109,6 +102,37 @@
 // Здесь мы будем хранить количество выбранных товаров
 // Например: { 'sofa': 2, 'chair': 1 }
 let cart = {};
+
+
+
+    const itemList = document.getElementById('item-list');
+
+function renderProducts() {
+    itemList.innerHTML = ''; // Очищаем список перед отрисовкой
+
+    products.forEach(product => {
+        // Создаем карточку товара
+        const itemDiv = document.createElement('div');
+        itemDiv.classList.add('item');
+
+        // Получаем текущее количество этого товара в корзине (или 0)
+        const count = cart[product.id] || 0;
+
+        // Наполняем карточку содержимым
+        itemDiv.innerHTML = `
+            <img src="${product.img}" alt="${product.name}" class="img">
+            <p>${product.name}</p>
+            <p><b>${product.price} руб.</b></p>
+            <div class="stepper">
+                <button class="btn-step" onclick="changeCount('${product.id}', -1)">-</button>
+                <span class="count-display">${count}</span>
+                <button class="btn-step" onclick="changeCount('${product.id}', 1)">+</button>
+            </div>
+        `;
+        
+        itemList.appendChild(itemDiv);
+    });
+}
 
     
 
