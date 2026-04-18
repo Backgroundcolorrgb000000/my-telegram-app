@@ -90,7 +90,9 @@
 
     // 2. Объект корзины (хранит id_товара: количество)
     let cart = {};
+let finalPriceWithDiscount = 0; // Добавляем эту переменную
 
+    
     // Данные пользователя
     const user = tg.initDataUnsafe?.user;
     nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Привет, Гость!";
