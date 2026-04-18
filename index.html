@@ -156,18 +156,23 @@
 }
 
     // Обработка нажатия на главную кнопку
-    tg.MainButton.onClick(() => {
-    // 1. Создаем объект с финальными данными заказа
-    const orderData = {
-        products: cart,
-        totalPrice: 0 // Сюда можно добавить итоговую цену, если нужно
-    };
+   tg.MainButton.onClick(() => {
+    // Показываем стандартное окно подтверждения
+    tg.showConfirm("Вы уверены, что хотите оформить заказ?", (isConfirmed) => {
+        if (isConfirmed) {
+            // Если пользователь нажал "OK" — отправляем данные
+            const orderData = {
+                products: cart,
+                totalPrice: 0 // Здесь можно передать сумму, рассчитанную в updateCartTotal
+            };
 
-    // 2. Превращаем объект в строку JSON
-    const dataToSend = JSON.stringify(orderData);
-
-    // 3. Отправляем боту
-    tg.sendData(dataToSend);
+            const dataToSend = JSON.stringify(orderData);
+            tg.sendData(dataToSend);
+        } else {
+            // Если нажал "Отмена" — ничего не делаем, просто закрываем окно
+            console.log("Пользователь передумал");
+        }
+    });
 });
     // Запуск приложения
     renderProducts();
