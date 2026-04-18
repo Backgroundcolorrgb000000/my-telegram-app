@@ -75,38 +75,49 @@
     <div id="item-list" class="container"></div>
 
 <script>
-    const tg = window.Telegram.WebApp;
+    Понял, давай соберем всё воедино. Главная проблема была в том, что tg.sendData требует открытия через обычную кнопку клавиатуры, и нам нужно было убедиться, что все переменные (особенно итоговая цена) подтягиваются правильно.
+
+Вот полный и исправленный код твоего скрипта для файла index.html. Я объединил логику корзины, расчет скидки 10% и правильную отправку данных.
+
+JavaScript
+const tg = window.Telegram.WebApp;
 tg.expand();
 
+// Элементы интерфейса
 const nameElement = document.getElementById('user-name');
 const itemList = document.getElementById('item-list');
 
-// 1. Каталог и состояние
+// 1. Данные о товарах
 const products = [
     { id: 'sofa', name: 'Стильный диван', price: 25000, img: 'https://via.placeholder.com/150' },
     { id: 'chair', name: 'Мягкое кресло', price: 15000, img: 'https://via.placeholder.com/150' },
     { id: 'table', name: 'Обеденный стол', price: 10000, img: 'https://via.placeholder.com/150' }
 ];
 
+// Состояние корзины
 let cart = {};
 let finalPriceWithDiscount = 0;
 
-// 2. Приветствие
+// 2. Приветствие пользователя
 const user = tg.initDataUnsafe?.user;
 nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Привет, Гость!";
 
-// 3. Логика корзины
+// 3. Функция изменения количества товара
 function changeCount(productId, delta) {
     if (!cart[productId]) cart[productId] = 0;
+    
     cart[productId] += delta;
+    
     if (cart[productId] < 0) cart[productId] = 0;
 
+    // Легкая вибрация при нажатии
     tg.HapticFeedback.impactOccurred('light');
+    
     renderProducts();
     updateCartTotal();
 }
 
-// 4. Отрисовка
+// 4. Отрисовка списка товаров
 function renderProducts() {
     itemList.innerHTML = '';
     products.forEach(product => {
@@ -126,19 +137,20 @@ function renderProducts() {
     });
 }
 
-// 5. Итоги и кнопка
+// 5. Функция подсчета итога и управления MainButton
 function updateCartTotal() {
     let totalPrice = 0;
     let totalCount = 0;
 
     for (let id in cart) {
         const product = products.find(p => p.id === id);
-        if (product) {
+        if (product && cart[id] > 0) {
             totalPrice += product.price * cart[id];
             totalCount += cart[id];
         }
     }
 
+    // Применяем скидку 10%
     finalPriceWithDiscount = totalPrice * 0.9;
 
     if (totalCount > 0) {
@@ -149,21 +161,27 @@ function updateCartTotal() {
     }
 }
 
-// 6. Отправка заказа
-bot.start((ctx) => {
-    ctx.reply('Нажми на кнопку ниже, чтобы открыть магазин. Только так заказ сможет отправиться!', {
-        reply_markup: {
-            keyboard: [
-                [{ 
-                    text: "🛒 Открыть магазин", 
-                    web_app: { url: 'https://ТВОЯ_ССЫЛКА_НА_САЙТ.com' } 
-                }]
-            ],
-            resize_keyboard: true // Чтобы кнопка не была огромной
+// 6. Обработка нажатия на главную кнопку (Отправка данных)
+tg.MainButton.onClick(() => {
+    // Показываем окно подтверждения
+    tg.showConfirm("Вы уверены, что хотите оформить заказ?", (isConfirmed) => {
+        if (isConfirmed) {
+            // Формируем объект заказа
+            const orderData = {
+                products: cart,
+                totalPrice: finalPriceWithDiscount
+            };
+
+            // Превращаем в строку JSON и отправляем боту
+            const dataToSend = JSON.stringify(orderData);
+            
+            // ВАЖНО: Эта функция закроет приложение и отправит данные в чат
+            tg.sendData(dataToSend);
         }
     });
 });
-// Запуск
+
+// Инициализация при запуске
 renderProducts();
 updateCartTotal();
 </script>
