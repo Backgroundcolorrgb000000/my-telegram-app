@@ -157,9 +157,18 @@
 
     // Обработка нажатия на главную кнопку
     tg.MainButton.onClick(() => {
-        tg.showAlert("Заказ отправлен в обработку!");
-    });
+    // 1. Создаем объект с финальными данными заказа
+    const orderData = {
+        products: cart,
+        totalPrice: 0 // Сюда можно добавить итоговую цену, если нужно
+    };
 
+    // 2. Превращаем объект в строку JSON
+    const dataToSend = JSON.stringify(orderData);
+
+    // 3. Отправляем боту
+    tg.sendData(dataToSend);
+});
     // Запуск приложения
     renderProducts();
     updateCartTotal();
