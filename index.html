@@ -99,6 +99,18 @@
     const btnMinus = document.getElementById('sofa-minus');
 
     let itemCount = 0;
+    
+    const products = [
+    { id: 'sofa', name: 'Стильный диван', price: 25000, img: 'https://via.placeholder.com/150' },
+    { id: 'chair', name: 'Мягкое кресло', price: 15000, img: 'https://via.placeholder.com/150' },
+    { id: 'table', name: 'Обеденный стол', price: 10000, img: 'https://via.placeholder.com/150' }
+];
+
+// Здесь мы будем хранить количество выбранных товаров
+// Например: { 'sofa': 2, 'chair': 1 }
+let cart = {};
+
+    
 
     // 1. Приветствие
     const user = tg.initDataUnsafe?.user;
