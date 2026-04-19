@@ -168,6 +168,7 @@ function updateCartTotal() {
 // 6. Обработка нажатия на главную кнопку (Отправка данных)
 // Обработка нажатия на главную кнопку
 tg.MainButton.onClick(() => {
+    // Получаем значения из новых полей ввода
     const name = document.getElementById('user_name').value;
     const address = document.getElementById('user_address').value;
 
@@ -179,15 +180,13 @@ tg.MainButton.onClick(() => {
     const orderData = {
         products: cart,
         totalPrice: finalPriceWithDiscount,
-        customerName: name,      // <-- Важно: имя должно совпадать с тем, что в боте
-        customerAddress: address  // <-- Важно: адрес должен совпадать
+        customerName: name,      // Должно совпадать с index.js
+        customerAddress: address  // Должно совпадать с index.js
     };
 
     tg.sendData(JSON.stringify(orderData));
 });
 
-    tg.sendData(JSON.stringify(orderData));
-});
 // Инициализация при запуске
 renderProducts();
 updateCartTotal();
