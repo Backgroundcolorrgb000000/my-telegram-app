@@ -27,7 +27,7 @@ bot.on('web_app_data', async (ctx) => {
         const data = JSON.parse(rawData);
         const totalAmount = Math.round(data.totalPrice);
 
-        // 1. Отправляем отчет
+        // 1. Текстовый отчет
         let report = `📦 **Новый заказ!**\n`;
         report += `👤 **Клиент:** ${data.customerName || 'Не указано'}\n`;
         report += `📍 **Адрес:** ${data.customerAddress || 'Не указано'}\n\n`;
@@ -40,25 +40,22 @@ bot.on('web_app_data', async (ctx) => {
 
         await ctx.reply(report, { parse_mode: 'Markdown' });
 
-        // 2. Попытка выставить счет
-        console.log("Пытаюсь отправить счет с токеном:", PAYMENT_TOKEN.substring(0, 10) + "...");
-        
+        // 2. Выставление счета (Invoice)
+        // Твой тестовый токен: 1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9
         await ctx.replyWithInvoice(
-            'Оплата мебели', 
-            'Заказ в магазине Mebel Shop',
-            `inv_${Date.now()}`, // Всегда уникальный ID
-            PAYMENT_TOKEN,
-            'UZS', 
-            [{ label: 'Товары', amount: totalAmount * 100 }]
+            'Оплата мебели',            // title: заголовок (обязателен)
+            'Ваш заказ в Mebel Shop',    // description: описание (обязательно)
+            `inv_${Date.now()}`,        // payload: уникальный ID
+            PAYMENT_TOKEN,              // токен из BotFather
+            'UZS',                      // валюта (Узбекский сум)
+            [{ label: 'Товары', amount: totalAmount * 100 }] // сумма в тийинах
         );
 
     } catch (e) {
-        // Это поможет увидеть точную ошибку в View Logs на Railway
-        console.error("ПОЛНАЯ ОШИБКА:", e.description || e.message);
+        console.error("Ошибка API:", e.description || e.message);
         ctx.reply(`❌ Ошибка: ${e.description || 'Не удалось создать счет'}`);
     }
 });
-
 // ОБЯЗАТЕЛЬНО: Подтверждение готовности к оплате
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
