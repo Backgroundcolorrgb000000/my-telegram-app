@@ -21,7 +21,7 @@ bot.start((ctx) => {
 // Слушаем данные из приложения
 bot.on('web_app_data', async (ctx) => {
     try {
-        const rawData = ctx.webAppData.data().text(); //
+        const rawData = ctx.webAppData.data.text(); //
         const data = JSON.parse(rawData); //
 
         if (!data.products || Object.keys(data.products).length === 0) { //
