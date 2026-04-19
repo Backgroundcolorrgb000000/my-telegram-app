@@ -68,4 +68,17 @@ bot.on('successful_payment', async (ctx) => {
 });
 
 bot.launch();
-console.log('Бот Shop_mebel запущен с приемом оплаты!');
+// Попытка выставить счет
+console.log("Отправка счета...");
+
+await ctx.replyWithInvoice(
+    'Заказ в Mebel Shop',          // 1. Title (ОБЯЗАТЕЛЬНО)
+    'Оплата мебели и аксессуаров',  // 2. Description (ОБЯЗАТЕЛЬНО)
+    `inv_${Date.now()}`,           // 3. Payload
+    PAYMENT_TOKEN,                 // 4. Provider Token
+    'UZS',                         // 5. Currency
+    [{ label: 'К оплате', amount: totalAmount * 100 }] // 6. Prices
+).catch(err => {
+    console.error("Детальная ошибка Telegram API:", err);
+    throw err;
+});
