@@ -177,11 +177,11 @@ tg.MainButton.onClick(() => {
     }
 
     const orderData = {
-        products: cart,
-        totalPrice: finalPriceWithDiscount,
-        customerName: name,
-        customerAddress: address
-    };
+    products: cart,
+    totalPrice: finalPriceWithDiscount,
+    customerName: document.getElementById('user_name').value,
+    customerAddress: document.getElementById('user_address').value
+};
 
     tg.sendData(JSON.stringify(orderData));
 });
