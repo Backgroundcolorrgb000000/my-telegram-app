@@ -20,7 +20,7 @@ bot.start((ctx) => {
     });
 });
 
-// ОБЯЗАТЕЛЬНО: async перед (ctx)
+// Обработка данных из Mini App (нажатие кнопки «Оформить заказ»)
 bot.on('web_app_data', async (ctx) => {
     try {
         const data = JSON.parse(ctx.webAppData.data.text());
@@ -32,7 +32,7 @@ bot.on('web_app_data', async (ctx) => {
 
         await ctx.reply(`✅ Заказ принят на сумму ${totalAmount} сум. Формирую чек...`);
 
-        // Используем объект для передачи параметров - это самый надежный способ в Telegraf
+        // Выставление счета
         await ctx.replyWithInvoice({
             title: 'Оплата мебели',
             description: 'Заказ в магазине Mebel Shop',
@@ -40,7 +40,7 @@ bot.on('web_app_data', async (ctx) => {
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [
-                { label: 'Товары', amount: totalAmount * 100 }
+                { label: 'Товары', amount: totalAmount * 100 } // Сумма в тийинах
             ],
             start_parameter: 'mebel-shop-order'
         });
@@ -50,13 +50,24 @@ bot.on('web_app_data', async (ctx) => {
         await ctx.reply(`❌ Ошибка: ${e.message || 'Не удалось создать счет'}`);
     }
 });
-// Подтверждение перед оплатой
-bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// После успешной оплаты
-bot.on('successful_payment', async (ctx) => {
-    await ctx.reply('✅ Оплата прошла успешно! Спасибо за покупку. Доставка по Ташкенту скоро свяжется с вами.');
+// 1. ОБЯЗАТЕЛЬНО: Подтверждение готовности принять платеж
+bot.on('pre_checkout_query', (ctx) => {
+    ctx.answerPreCheckoutQuery(true).catch(err => {
+        console.error("Ошибка pre_checkout:", err);
+    });
 });
 
-bot.launch();
-console.log('Бот запущен корректно!');
+// 2. ОБЯЗАТЕЛЬНО: Действие после успешной оплаты
+bot.on('successful_payment', async (ctx) => {
+    await ctx.reply('✅ Оплата прошла успешно! Спасибо за покупку. Наша служба доставки скоро свяжется с вами.');
+    console.log("Платеж получен:", ctx.message.successful_payment);
+});
+
+bot.launch().then(() => {
+    console.log('Бот Shop_mebel запущен с приемом оплаты!');
+});
+
+// Мягкая остановка
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
