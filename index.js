@@ -6,7 +6,7 @@ const bot = new Telegraf('8474220877:AAHmSXn0v-MRbWSZMAWGr16EYoPF1SXD3SQ');
 // 2. Ссылка на Mini App
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 
-// 3. ТВОЙ ПЛАТЕЖНЫЙ ТОКЕН (из скриншота 30)
+// 3. Твой платежный токен (Smart Glocal Test)
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 
 bot.start((ctx) => {
@@ -20,62 +20,61 @@ bot.start((ctx) => {
     });
 });
 
-// Замени блок bot.on('web_app_data', ...) на этот:
+// ОБЯЗАТЕЛЬНО: async перед (ctx)
 bot.on('web_app_data', async (ctx) => {
     try {
         const rawData = ctx.webAppData.data.text();
         const data = JSON.parse(rawData);
         const totalAmount = Math.round(data.totalPrice);
 
-        // 1. Текстовый отчет
+        // Формируем текст сообщения
         let report = `📦 **Новый заказ!**\n`;
         report += `👤 **Клиент:** ${data.customerName || 'Не указано'}\n`;
         report += `📍 **Адрес:** ${data.customerAddress || 'Не указано'}\n\n`;
-        
-        const names = { 'sofa': 'Стильный диван', 'chair': 'Мягкое кресло', 'table': 'Обеденный стол' };
+
+        const names = { 
+            'sofa': 'Стильный диван', 
+            'chair': 'Мягкое кресло', 
+            'table': 'Обеденный стол' 
+        };
+
         for (const [id, count] of Object.entries(data.products)) {
-            if (count > 0) report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
+            if (count > 0) {
+                report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
+            }
         }
         report += `\n💰 **Итого к оплате:** ${totalAmount} сум.`;
 
+        // 1. Отправляем отчет
         await ctx.reply(report, { parse_mode: 'Markdown' });
 
-        // 2. Выставление счета (Invoice)
-        // Твой тестовый токен: 1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9
+        // 2. Выставляем счет (Invoice)
+        // Здесь были ошибки с параметрами, теперь всё на своих местах
         await ctx.replyWithInvoice(
-            'Оплата мебели',            // title: заголовок (обязателен)
-            'Ваш заказ в Mebel Shop',    // description: описание (обязательно)
-            `inv_${Date.now()}`,        // payload: уникальный ID
-            PAYMENT_TOKEN,              // токен из BotFather
-            'UZS',                      // валюта (Узбекский сум)
-            [{ label: 'Товары', amount: totalAmount * 100 }] // сумма в тийинах
-        );
+            'Оплата заказа мебели',          // Title
+            'Заказ в магазине Mebel Shop',    // Description
+            `inv_${Date.now()}`,             // Payload (уникальный ID)
+            PAYMENT_TOKEN,                   // Token
+            'UZS',                           // Currency (Узбекский сум)
+            [{ label: 'Товары', amount: totalAmount * 100 }] // Цена (сумы * 100 для тийинов)
+        ).catch(err => {
+            console.error("Ошибка при отправке инвойса:", err);
+            ctx.reply(`❌ Ошибка выставления счета: ${err.message}`);
+        });
 
     } catch (e) {
-        console.error("Ошибка API:", e.description || e.message);
-        ctx.reply(`❌ Ошибка: ${e.description || 'Не удалось создать счет'}`);
+        console.error("Общая ошибка:", e);
+        ctx.reply('❌ Произошла ошибка при обработке данных.');
     }
 });
-// ОБЯЗАТЕЛЬНО: Подтверждение готовности к оплате
+
+// Подтверждение перед оплатой
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// Сообщение после успешной оплаты
+// После успешной оплаты
 bot.on('successful_payment', async (ctx) => {
-    await ctx.reply('✅ Оплата прошла успешно! Мы начали сборку вашего заказа. Доставка по Ташкенту в течение дня.');
+    await ctx.reply('✅ Оплата прошла успешно! Спасибо за покупку. Доставка по Ташкенту скоро свяжется с вами.');
 });
 
 bot.launch();
-// Попытка выставить счет
-console.log("Отправка счета...");
-
-await ctx.replyWithInvoice(
-    'Заказ в Mebel Shop',          // 1. Title (ОБЯЗАТЕЛЬНО)
-    'Оплата мебели и аксессуаров',  // 2. Description (ОБЯЗАТЕЛЬНО)
-    `inv_${Date.now()}`,           // 3. Payload
-    PAYMENT_TOKEN,                 // 4. Provider Token
-    'UZS',                         // 5. Currency
-    [{ label: 'К оплате', amount: totalAmount * 100 }] // 6. Prices
-).catch(err => {
-    console.error("Детальная ошибка Telegram API:", err);
-    throw err;
-});
+console.log('Бот запущен корректно!');
