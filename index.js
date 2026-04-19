@@ -27,34 +27,23 @@ bot.on('web_app_data', async (ctx) => {
         const data = JSON.parse(rawData);
         const totalAmount = Math.round(data.totalPrice);
 
-        // 1. Сначала отправляем текстовый отчет о заказе
-        let report = `📦 **Новый заказ!**\n`;
-        report += `👤 **Клиент:** ${data.customerName || 'Не указано'}\n`;
-        report += `📍 **Адрес:** ${data.customerAddress || 'Не указано'}\n\n`;
-        
-        const names = { 'sofa': 'Стильный диван', 'chair': 'Мягкое кресло', 'table': 'Обеденный стол' };
-        for (const [id, count] of Object.entries(data.products)) {
-            if (count > 0) report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
-        }
-        report += `\n💰 **Итого к оплате:** ${totalAmount} сум.`;
-
-        await ctx.reply(report, { parse_mode: 'Markdown' });
+        // 1. Сначала подтверждаем получение данных
+        await ctx.reply(`📦 Заказ принят! Сумма: ${totalAmount} сум. Готовлю счет...`);
 
         // 2. Выставляем счет (Invoice)
-        // ВАЖНО: Соблюдаем строгий порядок параметров
+        // ВАЖНО: Используем именованные параметры для Telegraf или строгий порядок
         await ctx.replyWithInvoice(
-            'Оплата мебели в Mebel Shop',    // 1. title (ОБЯЗАТЕЛЬНО)
-            'Ваш заказ успешно оформлен',    // 2. description (ОБЯЗАТЕЛЬНО)
-            `inv_${Date.now()}`,             // 3. payload (уникальный ID)
-            PAYMENT_TOKEN,                   // 4. provider_token
-            'UZS',                           // 5. currency (валюта)
-            [{ label: 'Мебель', amount: totalAmount * 100 }] // 6. prices (сумма в тийинах)
+            'Оплата заказа мебели',          // 1. Title (обязательно)
+            'Ваш заказ в магазине Mebel Shop',// 2. Description (обязательно)
+            `order_${Date.now()}`,           // 3. Payload (уникальный ID)
+            PAYMENT_TOKEN,                   // 4. Токен: 1877036958:TEST:...
+            'UZS',                           // 5. Валюта
+            [{ label: 'К оплате', amount: totalAmount * 100 }] // 6. Цена (в тийинах)
         );
 
     } catch (e) {
-        console.error("Ошибка при обработке заказа:", e);
-        // Выводим детальную ошибку прямо в чат для отладки
-        ctx.reply(`❌ Ошибка выставления счета: ${e.description || e.message}`);
+        console.error("Ошибка API:", e);
+        ctx.reply(`❌ Ошибка: ${e.message}`);
     }
 });
 // Подтверждение перед оплатой
