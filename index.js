@@ -50,11 +50,17 @@ bot.on('web_app_data', async (ctx) => {
         // 2. Выставляем счет (Invoice)
         await ctx.replyWithInvoice(
             'Оплата заказа мебели', 
-            'Пожалуйста, оплатите ваш заказ для подтверждения доставки',
-            'order_' + Date.now(), 
+            'Заказ в магазине Mebel Shop',
+            `order_${Math.floor(Math.random() * 1000)}`, // Генерируем случайный ID
             PAYMENT_TOKEN,
             'UZS', 
-            [{ label: 'Мебель', amount: totalAmount * 100 }] // Сумма в тийинах
+            [{ label: 'Товары', amount: totalAmount * 100 }],
+            {
+                need_name: true,           // Можно запросить имя через сам Telegram
+                need_phone_number: true,   // И телефон для доставки
+                send_email_to_provider: false,
+                is_flexible: false
+            }
         );
 
     } catch (e) {
