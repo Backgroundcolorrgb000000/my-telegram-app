@@ -27,47 +27,36 @@ bot.on('web_app_data', async (ctx) => {
         const data = JSON.parse(rawData);
         const totalAmount = Math.round(data.totalPrice);
 
-        // Формируем текст сообщения
+        // 1. Сначала отправляем текстовый отчет о заказе
         let report = `📦 **Новый заказ!**\n`;
         report += `👤 **Клиент:** ${data.customerName || 'Не указано'}\n`;
         report += `📍 **Адрес:** ${data.customerAddress || 'Не указано'}\n\n`;
-
-        const names = { 
-            'sofa': 'Стильный диван', 
-            'chair': 'Мягкое кресло', 
-            'table': 'Обеденный стол' 
-        };
-
+        
+        const names = { 'sofa': 'Стильный диван', 'chair': 'Мягкое кресло', 'table': 'Обеденный стол' };
         for (const [id, count] of Object.entries(data.products)) {
-            if (count > 0) {
-                report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
-            }
+            if (count > 0) report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
         }
         report += `\n💰 **Итого к оплате:** ${totalAmount} сум.`;
 
-        // 1. Отправляем отчет
         await ctx.reply(report, { parse_mode: 'Markdown' });
 
         // 2. Выставляем счет (Invoice)
-        // Здесь были ошибки с параметрами, теперь всё на своих местах
+        // ВАЖНО: Соблюдаем строгий порядок параметров
         await ctx.replyWithInvoice(
-            'Оплата заказа мебели',          // Title
-            'Заказ в магазине Mebel Shop',    // Description
-            `inv_${Date.now()}`,             // Payload (уникальный ID)
-            PAYMENT_TOKEN,                   // Token
-            'UZS',                           // Currency (Узбекский сум)
-            [{ label: 'Товары', amount: totalAmount * 100 }] // Цена (сумы * 100 для тийинов)
-        ).catch(err => {
-            console.error("Ошибка при отправке инвойса:", err);
-            ctx.reply(`❌ Ошибка выставления счета: ${err.message}`);
-        });
+            'Оплата мебели в Mebel Shop',    // 1. title (ОБЯЗАТЕЛЬНО)
+            'Ваш заказ успешно оформлен',    // 2. description (ОБЯЗАТЕЛЬНО)
+            `inv_${Date.now()}`,             // 3. payload (уникальный ID)
+            PAYMENT_TOKEN,                   // 4. provider_token
+            'UZS',                           // 5. currency (валюта)
+            [{ label: 'Мебель', amount: totalAmount * 100 }] // 6. prices (сумма в тийинах)
+        );
 
     } catch (e) {
-        console.error("Общая ошибка:", e);
-        ctx.reply('❌ Произошла ошибка при обработке данных.');
+        console.error("Ошибка при обработке заказа:", e);
+        // Выводим детальную ошибку прямо в чат для отладки
+        ctx.reply(`❌ Ошибка выставления счета: ${e.description || e.message}`);
     }
 });
-
 // Подтверждение перед оплатой
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
