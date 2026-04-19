@@ -23,27 +23,31 @@ bot.start((ctx) => {
 // ОБЯЗАТЕЛЬНО: async перед (ctx)
 bot.on('web_app_data', async (ctx) => {
     try {
-        const rawData = ctx.webAppData.data.text();
-        const data = JSON.parse(rawData);
+        const data = JSON.parse(ctx.webAppData.data.text());
         const totalAmount = Math.round(data.totalPrice);
 
-        // 1. Сначала подтверждаем получение данных
-        await ctx.reply(`📦 Заказ принят! Сумма: ${totalAmount} сум. Готовлю счет...`);
+        if (!totalAmount || totalAmount <= 0) {
+            return await ctx.reply('❌ Ошибка: Корзина пуста');
+        }
 
-        // 2. Выставляем счет (Invoice)
-        // ВАЖНО: Используем именованные параметры для Telegraf или строгий порядок
-        await ctx.replyWithInvoice(
-            'Оплата заказа мебели',          // 1. Title (обязательно)
-            'Ваш заказ в магазине Mebel Shop',// 2. Description (обязательно)
-            `order_${Date.now()}`,           // 3. Payload (уникальный ID)
-            PAYMENT_TOKEN,                   // 4. Токен: 1877036958:TEST:...
-            'UZS',                           // 5. Валюта
-            [{ label: 'К оплате', amount: totalAmount * 100 }] // 6. Цена (в тийинах)
-        );
+        await ctx.reply(`✅ Заказ принят на сумму ${totalAmount} сум. Формирую чек...`);
+
+        // Используем объект для передачи параметров - это самый надежный способ в Telegraf
+        await ctx.replyWithInvoice({
+            title: 'Оплата мебели',
+            description: 'Заказ в магазине Mebel Shop',
+            payload: `order_${Date.now()}`,
+            provider_token: PAYMENT_TOKEN,
+            currency: 'UZS',
+            prices: [
+                { label: 'Товары', amount: totalAmount * 100 }
+            ],
+            start_parameter: 'mebel-shop-order'
+        });
 
     } catch (e) {
-        console.error("Ошибка API:", e);
-        ctx.reply(`❌ Ошибка: ${e.message}`);
+        console.error("Ошибка при создании счета:", e);
+        await ctx.reply(`❌ Ошибка: ${e.message || 'Не удалось создать счет'}`);
     }
 });
 // Подтверждение перед оплатой
