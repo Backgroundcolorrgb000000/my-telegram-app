@@ -21,39 +21,39 @@ bot.start((ctx) => {
 // Слушаем данные из приложения
 bot.on('web_app_data', async (ctx) => {
     try {
-        // ИСПРАВЛЕНИЕ: получаем текст через .text()
-        const rawData = ctx.webAppData.data.text(); 
-        console.log("=== ДАННЫЕ ПОЛУЧЕНЫ ===");
-        console.log(rawData);
+        const rawData = ctx.webAppData.data().text(); //
+        const data = JSON.parse(rawData); //
 
-        const data = JSON.parse(rawData);
-
-        if (!data.products || Object.keys(data.products).length === 0) {
-            return ctx.reply("🛒 Ваша корзина пуста.");
+        if (!data.products || Object.keys(data.products).length === 0) { //
+            return ctx.reply("🛒 Ваша корзина пуста."); //
         }
 
-        let report = `📦 **Новый заказ!**\n\n`;
-        const names = {
-            'sofa': 'Стильный диван',
-            'chair': 'Мягкое кресло',
-            'table': 'Обеденный стол'
+        // ОБНОВЛЕННЫЙ БЛОК: Добавляем клиента и адрес
+        let report = `📦 **Новый заказ!**\n`;
+        report += `👤 **Клиент:** ${data.customerName || 'Не указано'}\n`;
+        report += `📍 **Адрес:** ${data.customerAddress || 'Не указано'}\n\n`;
+
+        const names = { //
+            'sofa': 'Стильный диван', //
+            'chair': 'Мягкое кресло', //
+            'table': 'Обеденный стол' //
         };
 
-        for (const [id, count] of Object.entries(data.products)) {
-            if (count > 0) {
-                const itemName = names[id] || id;
-                report += `▫️ **${itemName}**: ${count} шт.\n`;
+        for (const [id, count] of Object.entries(data.products)) { //
+            if (count > 0) { //
+                const itemName = names[id] || id; //
+                report += `▫️ **${itemName}**: ${count} шт.\n`; //
             }
         }
 
-        const total = Math.round(data.totalPrice || 0);
-        report += `\n💰 **Итого к оплате:** ${total} руб.`;
+        const total = Math.round(data.totalPrice || 0); //
+        report += `\n💰 **Итого к оплате:** ${total} руб.`; //
 
-        await ctx.reply(report, { parse_mode: 'Markdown' });
+        await ctx.reply(report, { parse_mode: 'Markdown' }); //
 
     } catch (e) {
-        console.error("Ошибка парсинга:", e);
-        ctx.reply('❌ Ошибка при чтении данных заказа.');
+        console.error("Ошибка парсинга:", e); //
+        ctx.reply('❌ Ошибка при чтении данных заказа.'); //
     }
 });
 
