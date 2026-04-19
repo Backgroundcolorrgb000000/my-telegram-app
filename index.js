@@ -20,52 +20,42 @@ bot.start((ctx) => {
     });
 });
 
+// Замени блок bot.on('web_app_data', ...) на этот:
 bot.on('web_app_data', async (ctx) => {
     try {
         const rawData = ctx.webAppData.data.text();
         const data = JSON.parse(rawData);
         const totalAmount = Math.round(data.totalPrice);
 
-        // Формируем текст сообщения
+        // 1. Отправляем отчет
         let report = `📦 **Новый заказ!**\n`;
         report += `👤 **Клиент:** ${data.customerName || 'Не указано'}\n`;
         report += `📍 **Адрес:** ${data.customerAddress || 'Не указано'}\n\n`;
-
-        const names = { 
-            'sofa': 'Стильный диван', 
-            'chair': 'Мягкое кресло', 
-            'table': 'Обеденный стол' 
-        };
-
+        
+        const names = { 'sofa': 'Стильный диван', 'chair': 'Мягкое кресло', 'table': 'Обеденный стол' };
         for (const [id, count] of Object.entries(data.products)) {
-            if (count > 0) {
-                report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
-            }
+            if (count > 0) report += `▫️ **${names[id] || id}**: ${count} шт.\n`;
         }
         report += `\n💰 **Итого к оплате:** ${totalAmount} сум.`;
 
-        // 1. Отправляем отчет
         await ctx.reply(report, { parse_mode: 'Markdown' });
 
-        // 2. Выставляем счет (Invoice)
+        // 2. Попытка выставить счет
+        console.log("Пытаюсь отправить счет с токеном:", PAYMENT_TOKEN.substring(0, 10) + "...");
+        
         await ctx.replyWithInvoice(
-            'Оплата заказа мебели', 
+            'Оплата мебели', 
             'Заказ в магазине Mebel Shop',
-            `order_${Math.floor(Math.random() * 1000)}`, // Генерируем случайный ID
+            `inv_${Date.now()}`, // Всегда уникальный ID
             PAYMENT_TOKEN,
             'UZS', 
-            [{ label: 'Товары', amount: totalAmount * 100 }],
-            {
-                need_name: true,           // Можно запросить имя через сам Telegram
-                need_phone_number: true,   // И телефон для доставки
-                send_email_to_provider: false,
-                is_flexible: false
-            }
+            [{ label: 'Товары', amount: totalAmount * 100 }]
         );
 
     } catch (e) {
-        console.error("Ошибка платежа:", e);
-        ctx.reply('❌ Ошибка при оформлении счета.');
+        // Это поможет увидеть точную ошибку в View Logs на Railway
+        console.error("ПОЛНАЯ ОШИБКА:", e.description || e.message);
+        ctx.reply(`❌ Ошибка: ${e.description || 'Не удалось создать счет'}`);
     }
 });
 
