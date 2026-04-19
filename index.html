@@ -171,17 +171,20 @@ tg.MainButton.onClick(() => {
     const name = document.getElementById('user_name').value;
     const address = document.getElementById('user_address').value;
 
-    if (name.length < 2 || address.length < 5) {
-        tg.showAlert("Пожалуйста, введите имя и полный адрес!");
+    if (!name || !address) {
+        tg.showAlert("Пожалуйста, заполните имя и адрес!");
         return;
     }
 
     const orderData = {
-    products: cart,
-    totalPrice: finalPriceWithDiscount,
-    customerName: document.getElementById('user_name').value,
-    customerAddress: document.getElementById('user_address').value
-};
+        products: cart,
+        totalPrice: finalPriceWithDiscount,
+        customerName: name,      // <-- Важно: имя должно совпадать с тем, что в боте
+        customerAddress: address  // <-- Важно: адрес должен совпадать
+    };
+
+    tg.sendData(JSON.stringify(orderData));
+});
 
     tg.sendData(JSON.stringify(orderData));
 });
