@@ -168,25 +168,23 @@ function updateCartTotal() {
 // 6. Обработка нажатия на главную кнопку (Отправка данных)
 // Обработка нажатия на главную кнопку
 tg.MainButton.onClick(() => {
-    tg.showConfirm("Вы уверены, что хотите оформить заказ?", (isConfirmed) => {
-        if (isConfirmed) {
-            // ПРОВЕРКА: Есть ли что-то в корзине?
-            if (Object.keys(cart).length === 0) {
-                tg.showAlert("Ваша корзина пуста!");
-                return;
-            }
+    const name = document.getElementById('user_name').value;
+    const address = document.getElementById('user_address').value;
 
-            const orderData = {
-                products: cart,
-                totalPrice: finalPriceWithDiscount // Используем реальную цену со скидкой
-            };
+    if (name.length < 2 || address.length < 5) {
+        tg.showAlert("Пожалуйста, введите имя и полный адрес!");
+        return;
+    }
 
-            const dataToSend = JSON.stringify(orderData);
-            tg.sendData(dataToSend); 
-        }
-    });
+    const orderData = {
+        products: cart,
+        totalPrice: finalPriceWithDiscount,
+        customerName: name,
+        customerAddress: address
+    };
+
+    tg.sendData(JSON.stringify(orderData));
 });
-
 // Инициализация при запуске
 renderProducts();
 updateCartTotal();
