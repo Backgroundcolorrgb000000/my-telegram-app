@@ -66,24 +66,30 @@ bot.on('pre_checkout_query', (ctx) => {
 
 bot.on('successful_payment', async (ctx) => {
     // Сообщение клиенту
-    await ctx.reply('✅ Оплата прошла успешно! Спасибо за покупку. Наша служба доставки скоро свяжется с вами.');
+    await ctx.reply('✅ Оплата прошла успешно! Спасибо за покупку.');
 
     try {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
 
-        // Формируем уведомление для ТЕБЯ
+        // Формируем список товаров
+        let itemsList = '';
+        for (const [name, count] of Object.entries(orderInfo.items)) {
+            if (count > 0) itemsList += `▫️ ${name}: ${count} шт.\n`;
+        }
+
+        // Подробный отчет для админа
         let adminNotice = `🚀 **НОВЫЙ ОПЛАЧЕННЫЙ ЗАКАЗ!**\n\n`;
         adminNotice += `👤 **Клиент:** ${orderInfo.name}\n`;
         adminNotice += `📍 **Адрес:** ${orderInfo.address}\n`;
         adminNotice += `💰 **Оплачено:** ${payment.total_amount / 100} сум\n`;
-        adminNotice += `📱 **Связь:** @${ctx.from.username || 'username скрыт'}\n`;
+        adminNotice += `🛒 **Товары:**\n${itemsList}\n`;
+        adminNotice += `📱 **Связь:** @${ctx.from.username || 'скрыт'}`;
 
-        // Отправка уведомления админу
         await bot.telegram.sendMessage(ADMIN_ID, adminNotice, { parse_mode: 'Markdown' });
         
     } catch (err) {
-        console.error("Ошибка уведомления админа:", err);
+        console.error("Ошибка уведомления:", err);
     }
 });
 
