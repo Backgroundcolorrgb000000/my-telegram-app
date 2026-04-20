@@ -65,37 +65,83 @@ bot.on('pre_checkout_query', (ctx) => {
 });
 
 bot.on('successful_payment', async (ctx) => {
-    // Сообщение клиенту
-    await ctx.reply('✅ Оплата прошла успешно! Спасибо за покупку.');
+    // 1. Сообщение клиенту
+    await ctx.reply('✅ Оплата прошла успешно! Мы уже начали готовить ваш заказ.');
 
     try {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
+        const userId = ctx.from.id; // ID покупателя для уведомлений
 
-        // Формируем список товаров
+        // Список товаров
         let itemsList = '';
         for (const [name, count] of Object.entries(orderInfo.items)) {
             if (count > 0) itemsList += `▫️ ${name}: ${count} шт.\n`;
         }
 
-        // Подробный отчет для админа
+        // Отчет для АДМИНА с кнопками действий
         let adminNotice = `🚀 **НОВЫЙ ОПЛАЧЕННЫЙ ЗАКАЗ!**\n\n`;
         adminNotice += `👤 **Клиент:** ${orderInfo.name}\n`;
         adminNotice += `📍 **Адрес:** ${orderInfo.address}\n`;
-        adminNotice += `💰 **Оплачено:** ${payment.total_amount / 100} сум\n`;
-        adminNotice += `🛒 **Товары:**\n${itemsList}\n`;
-        adminNotice += `📱 **Связь:** @${ctx.from.username || 'скрыт'}`;
+        adminNotice += `💰 **Сумма:** ${payment.total_amount / 100} сум\n`;
+        adminNotice += `🛒 **Товары:**\n${itemsList}`;
 
-        await bot.telegram.sendMessage(ADMIN_ID, adminNotice, { parse_mode: 'Markdown' });
-        
+        await bot.telegram.sendMessage(ADMIN_ID, adminNotice, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    // В callback_data прячем действие и ID клиента, чтобы знать кому слать пуш
+                    [{ text: '👨‍🔧 В сборку', callback_data: `status_assembling_${userId}` }],
+                    [{ text: '🚚 Передать курьеру', callback_data: `status_delivery_${userId}` }],
+                    [{ text: '✅ Доставлено', callback_data: `status_completed_${userId}` }]
+                ]
+            }
+        });
     } catch (err) {
-        console.error("Ошибка уведомления:", err);
+        console.error("Ошибка в успешной оплате:", err);
     }
 });
 
 bot.launch().then(() => {
     console.log('Бот запущен с уведомлениями для админа!');
 });
+
+
+bot.on('callback_query', async (ctx) => {
+    const data = ctx.callbackQuery.data;
+    
+    // Разбираем данные: что сделать и кому отправить
+    if (data.startsWith('status_')) {
+        const [_, action, targetUserId] = data.split('_');
+        let messageToUser = '';
+        let adminStatusUpdate = '';
+
+        if (action === 'assembling') {
+            messageToUser = '🛠 Ваш заказ мебели передан в цех на сборку!';
+            adminStatusUpdate = '👷‍♂️ Заказ переведен в статус: **В сборке**';
+        } else if (action === 'delivery') {
+            messageToUser = '🚛 Ура! Ваша мебель уже в пути. Курьер свяжется с вами в ближайшее время.';
+            adminStatusUpdate = '🚚 Заказ переведен в статус: **Доставка**';
+        } else if (action === 'completed') {
+            messageToUser = '🏠 Заказ доставлен. Спасибо, что выбрали Mebel Shop! Будем рады отзыву.';
+            adminStatusUpdate = '✅ Заказ отмечен как **Выполненный**';
+        }
+
+        try {
+            // Отправляем уведомление клиенту
+            await bot.telegram.sendMessage(targetUserId, messageToUser);
+            
+            // Подтверждаем админу, что статус изменен
+            await ctx.answerCbQuery('Статус обновлен');
+            await ctx.editMessageCaption ? await ctx.editMessageCaption(adminStatusUpdate) : await ctx.reply(adminStatusUpdate);
+        } catch (e) {
+            console.error("Ошибка смены статуса:", e);
+            await ctx.answerCbQuery('Ошибка при отправке уведомления');
+        }
+    }
+});
+
+
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
