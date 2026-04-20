@@ -59,26 +59,37 @@ bot.on('web_app_data', async (ctx) => {
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
 bot.on('successful_payment', async (ctx) => {
+    console.log("=== ОБНАРУЖЕН ПЛАТЕЖ ==="); // Вы увидите это в логах Railway
+    
     try {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
         
-        // Формируем красивый список товаров из объекта products
-        let itemsList = "";
-        for (let key in orderInfo.items) {
-            itemsList += `${key} (${orderInfo.items[key]} шт); `;
-        }
+        // Формируем список товаров из объекта products
+        const items = orderInfo.items || {};
+        const itemsString = Object.entries(items)
+            .map(([id, qty]) => `${id}: ${qty}`)
+            .join(', ');
 
-        await saveOrderToSheets({
-            name: ctx.from.first_name,
-            amount: payment.total_amount / 100,
-            items: itemsList || "Мебель",
-            userId: ctx.from.id
-        });
+        const rowData = {
+            "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
+            "Имя клиента": ctx.from.first_name || "Клиент",
+            "Сумма (сум)": payment.total_amount / 100,
+            "Товары": itemsString || "Товар не указан",
+            "ID пользователя": String(ctx.from.id)
+        };
 
-        await ctx.reply("✨ Оплата получена! Ваш заказ передан в работу.");
-    } catch (e) {
-        console.error("Ошибка после оплаты:", e);
+        console.log("Попытка записи в Google Sheets:", rowData);
+
+        // ВАЖНО: Проверьте, что в saveOrderToSheets ключи совпадают с колонками в таблице!
+        await saveOrderToSheets(rowData);
+        
+        console.log("✅ ЗАПИСЬ В ТАБЛИЦУ ВЫПОЛНЕНА");
+        await ctx.reply("🎉 Спасибо! Ваш заказ сохранен в таблицу.");
+
+    } catch (error) {
+        console.error("❌ ОШИБКА ПРИ ЗАПИСИ ЗАКАЗА:", error.message);
+        // Если здесь будет ошибка, вы увидите её в логах Railway красным цветом
     }
 });
 
