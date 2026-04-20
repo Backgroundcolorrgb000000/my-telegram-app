@@ -20,7 +20,7 @@
             color: var(--text-color);
             font-family: 'Montserrat', sans-serif;
             margin: 0;
-            padding-bottom: 100px;
+            padding-bottom: 120px;
         }
 
         header {
@@ -32,18 +32,26 @@
 
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
 
-        /* БАННЕР НОВАЯ КОЛЛЕКЦИЯ */
-        .hero-banner {
-            margin: 0 20px 30px 20px;
-            background-color: var(--sec-bg);
-            border-radius: 25px;
-            padding: 40px 30px;
-            position: relative;
-            overflow: hidden;
-        }
-        .hero-banner h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--hint); margin: 0; }
-        .hero-banner h1 { font-size: 38px; font-weight: 300; margin: 10px 0; }
-        .hero-banner p { font-size: 12px; color: var(--hint); line-height: 1.6; margin: 0; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-top: 25px; margin-bottom: 15px; }
+        .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
+        .view-all { font-size: 12px; color: var(--hint); }
+
+        /* КАТЕГОРИИ */
+        .categories { display: flex; overflow-x: auto; padding: 0 20px; gap: 15px; margin-bottom: 20px; scrollbar-width: none; }
+        .cat-item { display: flex; flex-direction: column; align-items: center; min-width: 75px; }
+        .cat-icon { width: 70px; height: 70px; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; border: 1px solid transparent; }
+        .cat-item.active .cat-icon { border-color: #000; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .cat-item span { font-size: 11px; color: var(--text-color); }
+
+        /* СЕТКА ТОВАРОВ */
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; }
+        .product-card { position: relative; }
+        .product-img-box { width: 100%; aspect-ratio: 1; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; position: relative; }
+        .badge { position: absolute; top: 10px; left: 10px; background: #fff; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 600; }
+        .fav-icon { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #eee; }
+        .fav-icon.active { color: #ff5252; }
+        .p-name { font-size: 13px; font-weight: 400; margin: 0; }
+        .p-price { font-size: 15px; font-weight: 600; margin: 5px 0; }
 
         /* СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ */
         .promo-banner {
@@ -58,18 +66,7 @@
         .promo-text h4 { font-size: 10px; text-transform: uppercase; color: #e57373; margin: 0 0 5px 0; }
         .promo-text h2 { font-size: 18px; font-weight: 400; margin: 0 0 10px 0; }
         .promo-link { font-size: 12px; text-decoration: underline; color: var(--hint); }
-        .promo-img { width: 100px; position: absolute; right: 10px; top: 10px; }
-
-        .section-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-bottom: 15px; }
-        .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
-        .view-all { font-size: 12px; color: var(--hint); }
-
-        /* КАТЕГОРИИ */
-        .categories { display: flex; overflow-x: auto; padding: 0 20px; gap: 15px; margin-bottom: 30px; scrollbar-width: none; }
-        .cat-item { display: flex; flex-direction: column; align-items: center; min-width: 75px; }
-        .cat-icon { width: 70px; height: 70px; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; border: 1px solid transparent; }
-        .cat-item.active .cat-icon { border-color: #000; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .cat-item span { font-size: 11px; color: var(--text-color); }
+        .promo-img { font-size: 50px; position: absolute; right: 20px; top: 20px; }
 
         /* ВЫБОР РЕДАКЦИИ */
         .editor-choice { margin: 0 20px 30px 20px; display: flex; gap: 20px; align-items: center; }
@@ -79,17 +76,6 @@
         .editor-info h4 { font-size: 16px; font-weight: 400; margin: 0 0 5px 0; }
         .editor-info p { font-size: 10px; color: var(--hint); line-height: 1.4; margin-bottom: 10px; }
         .price-big { font-size: 16px; font-weight: 600; }
-        .price-big span { font-size: 12px; font-weight: 300; margin-right: 4px; }
-
-        /* СЕТКА ТОВАРОВ */
-        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; }
-        .product-card { position: relative; }
-        .product-img-box { width: 100%; aspect-ratio: 1; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; position: relative; }
-        .badge { position: absolute; top: 10px; left: 10px; background: #fff; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 600; }
-        .fav-icon { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #eee; }
-        .fav-icon.active { color: #ff5252; }
-        .p-name { font-size: 13px; font-weight: 400; margin: 0; }
-        .p-price { font-size: 15px; font-weight: 600; margin: 5px 0; }
 
         /* НАВИГАЦИЯ */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #eee; z-index: 100; }
@@ -106,24 +92,27 @@
         <div style="font-size: 20px; display: flex; gap: 15px;"><span>🔍</span><span>👜</span></div>
     </header>
 
-    <div class="hero-banner">
-        <h3>Новая коллекция</h3>
-        <h1>Весна<br>2025</h1>
-        <p>Натуральные материалы<br>Скандинавский стиль</p>
-    </div>
-
     <div class="section-header">
         <h2>Категории</h2>
         <div class="view-all">Все ➔</div>
     </div>
     
     <div class="categories">
-        <div class="cat-item active"><div class="cat-icon">🛋</div><span>Диваны</span></div>
+        <div class="cat-item active"><div class="cat-icon">🛋️</div><span>Диваны</span></div>
         <div class="cat-item"><div class="cat-icon">🪑</div><span>Кресла</span></div>
-        <div class="cat-item"><div class="cat-icon">🛏</div><span>Кровати</span></div>
+        <div class="cat-item"><div class="cat-icon">🛏️</div><span>Кровати</span></div>
         <div class="cat-item"><div class="cat-icon">🪞</div><span>Зеркала</span></div>
     </div>
 
+    <div class="section-header">
+        <h2>Популярное</h2>
+    </div>
+
+    <div class="products-grid" id="grid"></div>
+
+    <div class="section-header">
+        <h2>Специальное предложение</h2>
+    </div>
     <div class="promo-banner">
         <div class="promo-text">
             <h4>Специальное предложение</h4>
@@ -136,22 +125,15 @@
     <div class="section-header">
         <h2>Выбор редакции</h2>
     </div>
-
     <div class="editor-choice" onclick="addToCart('mirror_arch', 1899000)">
         <div class="editor-img-box">🪞</div>
         <div class="editor-info">
             <div class="tag-mini">Лимитированная серия</div>
             <h4>Зеркало Arch</h4>
-            <p>Арочная форма, латунная рама. Создаёт ощущение объема и света.</p>
-            <div class="price-big"><span>от</span>1 899 000 сум</div>
+            <p>Арочная форма, латунная рама. Создаёт ощущение объема.</p>
+            <div class="price-big">от 1 899 000 сум</div>
         </div>
     </div>
-
-    <div class="section-header">
-        <h2>Популярное</h2>
-    </div>
-
-    <div class="products-grid" id="grid"></div>
 
     <div class="nav-bar">
         <div class="nav-item active"><div>🏠</div><p>Главная</p></div>
@@ -166,9 +148,9 @@
     tg.expand();
 
     const products = [
-        { id: 'sofa_lund', name: 'Диван Lund', price: 8999000, icon: '🛋', tag: 'NEW', fav: false },
+        { id: 'sofa_lund', name: 'Диван Lund', price: 8999000, icon: '🛋️', tag: 'NEW', fav: false },
         { id: 'chair_mist', name: 'Кресло Mist', price: 2799000, icon: '🪑', tag: '-20%', fav: true },
-        { id: 'bed_scandi', name: 'Кровать Scandi', price: 6499000, icon: '🛏', tag: '', fav: false },
+        { id: 'bed_scandi', name: 'Кровать Scandi', price: 6499000, icon: '🛏️', tag: '', fav: false },
         { id: 'lamp_nordic', name: 'Лампа Nordic', price: 999000, icon: '💡', tag: '', fav: false }
     ];
 
