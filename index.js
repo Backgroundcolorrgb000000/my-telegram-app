@@ -56,8 +56,16 @@ bot.start((ctx) => {
 // Обработка данных из Mini App
 bot.on('web_app_data', async (ctx) => {
     try {
-        // Исправлено получение данных
-        const data = JSON.parse(ctx.webAppData.data); 
+        // Проверяем: если это уже объект, берем его, если строка — парсим
+        let data;
+        try {
+            data = typeof ctx.webAppData.data === 'string' 
+                ? JSON.parse(ctx.webAppData.data) 
+                : ctx.webAppData.data;
+        } catch (e) {
+            data = ctx.webAppData.data;
+        }
+
         const totalAmount = Math.round(data.totalPrice || 0);
 
         if (totalAmount <= 0) return ctx.reply('Ошибка: корзина пуста');
@@ -68,19 +76,20 @@ bot.on('web_app_data', async (ctx) => {
             title: 'Оплата заказа FORMA',
             description: 'Мебель и предметы интерьера',
             payload: JSON.stringify({
-                items: data.products,
+                items: data.products || data.order,
                 userId: ctx.from.id 
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
-            prices: [{ label: 'Ваш заказ', amount: totalAmount * 100 }], // В тийинах
+            prices: [{ label: 'Ваш заказ', amount: totalAmount * 100 }],
             start_parameter: 'furniture-order'
         });
     } catch (e) {
-        console.error("Ошибка при создании инвойса:", e);
+        console.error("Ошибка инвойса:", e);
         ctx.reply('Произошла ошибка при формировании счета.');
     }
 });
+
 
 // ОБЯЗАТЕЛЬНО для работы оплаты
 bot.on('pre_checkout_query', (ctx) => {
