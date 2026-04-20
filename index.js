@@ -45,16 +45,16 @@ bot.on('web_app_data', async (ctx) => {
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-bot.on('successful_payment', async (ctx) => {
-    await ctx.reply('✅ Оплата получена! Скоро мы изменим статус вашего заказа.');
-
-    const payment = ctx.message.successful_payment;
-    const orderInfo = JSON.parse(payment.invoice_payload);
-
-    let itemsList = '';
-    for (const [name, count] of Object.entries(orderInfo.items)) {
-        if (count > 0) itemsList += `▫️ ${name}: ${count} шт.\n`;
+bot.on('successful_payment', async (ctx) => { 
+    try {
+        await ctx.reply('✅ Оплата получена!'); // Теперь await будет работать
+        
+        const payment = ctx.message.successful_payment;
+        // ... остальной код
+    } catch (e) {
+        console.error(e);
     }
+});
 
     // Уведомление АДМИНУ с кнопками
     await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!**\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList}`, {
