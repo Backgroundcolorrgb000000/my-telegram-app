@@ -5,7 +5,7 @@ const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 
 // ВСТАВЬТЕ СВОЙ ID (вы его уже знаете, раз уведомления приходили)
-const ADMIN_ID = 534728190; 
+const ADMIN_ID = 1296940843; 
 
 bot.start((ctx) => {
     ctx.reply('Магазин мебели в Ташкенте открыт!', {
