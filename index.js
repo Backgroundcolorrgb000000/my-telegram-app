@@ -2,18 +2,18 @@ const { Telegraf } = require('telegraf');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 
-// 1. ПЕРЕМЕННЫЕ (Берутся из Railway)
+// 1. НАСТРОЙКИ
 const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 
 if (!token) {
-    console.error("ОШИБКА: BOT_TOKEN отсутствует!");
+    console.error("ОШИБКА: BOT_TOKEN не задан!");
     process.exit(1);
 }
 
 const bot = new Telegraf(token);
 
-// 2. ФУНКЦИЯ ЗАПИСИ (Исправляет ошибку "not defined" со Screenshot_11)
+// 2. ФУНКЦИЯ ЗАПИСИ (Теперь она точно определена)
 async function saveOrderToSheets(rowData) {
     try {
         const serviceAccountAuth = new JWT({
@@ -27,30 +27,28 @@ async function saveOrderToSheets(rowData) {
         const sheet = doc.sheetsByIndex[0];
 
         await sheet.addRow(rowData);
-        console.log("✅ Данные успешно добавлены в Google Sheets");
+        console.log("✅ Данные успешно отправлены в Google Sheets");
     } catch (e) {
-        console.error("❌ Ошибка в saveOrderToSheets:", e.message);
+        console.error("❌ Ошибка внутри функции saveOrderToSheets:", e.message);
         throw e;
     }
 }
 
-// 3. ПРИЕМ ДАННЫХ (Исправляет "корзина пуста" со Screenshot_2)
+// 3. ПРИЕМ ДАННЫХ ИЗ MINI APP
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
         const rawData = ctx.webAppData.data;
-
-        // Умный парсинг для предотвращения ошибок
-        if (typeof rawData === 'string') {
-            data = JSON.parse(rawData);
-        } else {
-            data = rawData;
-        }
-
+        
+        // Исправляем проблему парсинга со Screenshot_11
+        data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
         console.log("Данные заказа получены:", data);
 
         const totalAmount = Math.round(data.totalPrice || 0);
-        if (totalAmount <= 0) return ctx.reply('Ошибка: сумма заказа равна 0.');
+        
+        if (totalAmount <= 0) {
+            return ctx.reply('Ошибка: сумма заказа не определена в корзине.');
+        }
 
         await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят. Формирую счет...`);
 
@@ -68,7 +66,8 @@ bot.on('web_app_data', async (ctx) => {
         });
 
     } catch (e) {
-        console.error("Ошибка инвойса:", e.message);
+        console.error("Ошибка при обработке заказа:", e.message);
+        ctx.reply("Произошла ошибка при формировании счета.");
     }
 });
 
@@ -76,8 +75,6 @@ bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
 // 4. ОБРАБОТКА ПОСЛЕ ОПЛАТЫ
 bot.on('successful_payment', async (ctx) => {
-    console.log("=== ОБНАРУЖЕН ПЛАТЕЖ ===");
-    
     try {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
@@ -87,26 +84,26 @@ bot.on('successful_payment', async (ctx) => {
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
-        // СТРОГО под структуру вашей таблицы (Screenshot_14)
+        // Соответствие колонкам со Screenshot_14
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
-            "Адрес": "Из приложения", // Заполняем колонку "Адрес" со Screenshot_14
+            "Адрес": "Из приложения", 
             "Сумма (сум)": payment.total_amount / 100,
             "Товары": itemsString || "Мебель",
             "ID пользователя": String(ctx.from.id)
         };
 
-        console.log("Попытка записи в таблицу:", rowData);
-
         await saveOrderToSheets(rowData);
-        
-        console.log("✅ ЗАПИСЬ В ТАБЛИЦУ ВЫПОЛНЕНА");
-        await ctx.reply("🎉 Оплата прошла успешно! Мы скоро свяжемся с вами.");
-
+        await ctx.reply("🎉 Оплата прошла! Данные сохранены в таблицу.");
     } catch (error) {
         console.error("❌ ОШИБКА ПРИ ЗАПИСИ:", error.message);
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен и готов к работе!'));
+// Запуск с защитой от дублей
+bot.launch().then(() => console.log('🚀 Бот запущен!'));
+
+// Остановка бота при перезагрузке сервера
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
