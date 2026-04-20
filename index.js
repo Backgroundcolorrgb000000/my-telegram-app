@@ -2,10 +2,16 @@ const { Telegraf } = require('telegraf');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 
-// Переменные окружения
+// 1. Проверка наличия токена (чтобы бот не падал с 401)
 const token = process.env.BOT_TOKEN;
+if (!token) {
+    console.error("ОШИБКА: BOT_TOKEN не найден в переменных окружения Railway!");
+    process.exit(1); 
+}
+
 const ADMIN_ID = process.env.ADMIN_ID || 1296940843;
-const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
+// Используйте переменную окружения для PAYMENT_TOKEN, если это возможно
+const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN || '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 
 const bot = new Telegraf(token);
@@ -15,30 +21,31 @@ async function saveOrderToSheets(orderData) {
     try {
         const serviceAccountAuth = new JWT({
             email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-            key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            // Исправление обработки секретного ключа
+            key: process.env.GOOGLE_PRIVATE_KEY ? process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n') : '',
             scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         });
 
         const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
         await doc.loadInfo();
-        const sheet = doc.sheetsByIndex[0]; // Берем первый лист
+        const sheet = doc.sheetsByIndex[0];
 
         await sheet.addRow({
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
-            "Имя клиента": orderData.name,
-            "Адрес": orderData.address,
+            "Имя клиента": orderData.name || 'Не указано',
+            "Адрес": orderData.address || 'Самовывоз/Не указан',
             "Сумма (сум)": orderData.amount,
             "Товары": orderData.items,
-            "ID пользователя": orderData.userId
+            "ID пользователя": String(orderData.userId)
         });
-        console.log("Заказ успешно записан в таблицу");
+        console.log("✅ Заказ записан в Google Sheets");
     } catch (e) {
-        console.error("Ошибка записи в таблицу:", e);
+        console.error("❌ Ошибка Google Sheets:", e.message);
     }
 }
 
 bot.start((ctx) => {
-    ctx.reply('Магазин мебели в Ташкенте открыт!', {
+    ctx.reply('🛋 Магазин мебели FORMA открыт!', {
         reply_markup: {
             keyboard: [[{ text: "🛒 Открыть каталог", web_app: { url: webAppUrl } }]],
             resize_keyboard: true
@@ -46,87 +53,110 @@ bot.start((ctx) => {
     });
 });
 
+// Обработка данных из Mini App
 bot.on('web_app_data', async (ctx) => {
     try {
-        const data = JSON.parse(ctx.webAppData.data.text());
-        const totalAmount = Math.round(data.totalPrice);
+        // Исправлено получение данных
+        const data = JSON.parse(ctx.webAppData.data); 
+        const totalAmount = Math.round(data.totalPrice || 0);
 
-        await ctx.reply(`✅ Заказ принят на сумму ${totalAmount} сум. Формирую чек...`);
+        if (totalAmount <= 0) return ctx.reply('Ошибка: корзина пуста');
+
+        await ctx.reply(`⏳ Формирую чек на сумму ${totalAmount.toLocaleString()} сум...`);
 
         await ctx.replyWithInvoice({
-            title: 'Оплата мебели',
-            description: 'Заказ в магазине Mebel Shop',
+            title: 'Оплата заказа FORMA',
+            description: 'Мебель и предметы интерьера',
             payload: JSON.stringify({
-                name: data.customerName,
-                address: data.customerAddress,
                 items: data.products,
                 userId: ctx.from.id 
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
-            prices: [{ label: 'Товары', amount: totalAmount * 100 }],
-            start_parameter: 'mebel-order'
+            prices: [{ label: 'Ваш заказ', amount: totalAmount * 100 }], // В тийинах
+            start_parameter: 'furniture-order'
         });
     } catch (e) {
-        console.error("Ошибка счета:", e);
+        console.error("Ошибка при создании инвойса:", e);
+        ctx.reply('Произошла ошибка при формировании счета.');
     }
 });
 
-bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
+// ОБЯЗАТЕЛЬНО для работы оплаты
+bot.on('pre_checkout_query', (ctx) => {
+    console.log("💳 Получен запрос на проверку платежа");
+    return ctx.answerPreCheckoutQuery(true);
+});
 
+// Обработка успешного платежа
 bot.on('successful_payment', async (ctx) => { 
     try {
         const payment = ctx.message.successful_payment;
-        const orderInfo = JSON.parse(payment.invoice_payload);
+        const payload = JSON.parse(payment.invoice_payload);
 
+        // Формируем список товаров для таблицы и админа
         let itemsList = '';
-        for (const [name, count] of Object.entries(orderInfo.items)) {
-            if (count > 0) itemsList += `${name} (${count}шт); `;
+        if (payload.items) {
+            for (const [id, count] of Object.entries(payload.items)) {
+                itemsList += `${id} (${count} шт); `;
+            }
         }
 
-        // 1. Сохраняем в таблицу
+        const amount = payment.total_amount / 100;
+
+        // 1. Запись в таблицу
         await saveOrderToSheets({
-            name: orderInfo.name,
-            address: orderInfo.address,
-            amount: payment.total_amount / 100,
+            name: ctx.from.first_name,
+            address: 'Уточняется менеджером',
+            amount: amount,
             items: itemsList,
-            userId: orderInfo.userId
+            userId: ctx.from.id
         });
 
-        await ctx.reply('✅ Оплата получена! Информация о заказе сохранена.');
+        await ctx.reply('✅ Спасибо! Оплата прошла успешно. Менеджер свяжется с вами.');
 
         // 2. Уведомление АДМИНУ
-        await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!** (Записан в таблицу)\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList.replace(/; /g, '\n')}`, {
-            parse_mode: 'Markdown',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: '🛠 В сборку', callback_data: `st_build_${orderInfo.userId}` }],
-                    [{ text: '🚚 Курьеру', callback_data: `st_ship_${orderInfo.userId}` }],
-                    [{ text: '✅ Завершить', callback_data: `st_done_${orderInfo.userId}` }]
-                ]
+        await bot.telegram.sendMessage(ADMIN_ID, 
+            `🚀 **НОВЫЙ ОПЛАЧЕННЫЙ ЗАКАЗ!**\n\n` +
+            `👤 Клиент: ${ctx.from.first_name}\n` +
+            `💰 Сумма: ${amount.toLocaleString()} сум\n` +
+            `🛒 Товары: ${itemsList}`, 
+            {
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    inline_keyboard: [
+                        [{ text: '🛠 В сборку', callback_data: `st_build_${ctx.from.id}` }],
+                        [{ text: '✅ Завершить', callback_data: `st_done_${ctx.from.id}` }]
+                    ]
+                }
             }
-        });
+        );
     } catch (e) {
-        console.error("Ошибка в обработке платежа:", e);
+        console.error("Ошибка успешного платежа:", e);
     }
 });
 
+// Кнопки статуса для админа
 bot.on('callback_query', async (ctx) => {
-    const [prefix, action, targetId] = ctx.callbackQuery.data.split('_');
-    if (prefix !== 'st') return;
+    const data = ctx.callbackQuery.data;
+    if (!data.startsWith('st_')) return;
 
-    let text = '';
-    if (action === 'build') text = '🛠 Ваш заказ передан на сборку!';
-    if (action === 'ship') text = '🚚 Ваша мебель уже в пути с курьером!';
-    if (action === 'done') text = '✅ Заказ доставлен! Спасибо за покупку.';
+    const [,, targetId] = data.split('_');
+    const action = data.includes('build') ? '🛠 Сборка' : '✅ Завершено';
 
     try {
-        await bot.telegram.sendMessage(targetId, text);
-        await ctx.answerCbQuery('Статус изменен');
-        await ctx.editMessageText(ctx.callbackQuery.message.text + `\n\n📢 **Статус:** ${text}`, { parse_mode: 'Markdown' });
+        await bot.telegram.sendMessage(targetId, `Уведомление: Ваш заказ переведен в статус: ${action}`);
+        await ctx.answerCbQuery('Статус обновлен');
+        await ctx.editMessageText(ctx.callbackQuery.message.text + `\n\n📢 **Текущий статус:** ${action}`);
     } catch (e) {
-        console.error("Ошибка статуса:", e);
+        console.log("Ошибка уведомления клиента:", e.message);
     }
 });
 
-bot.launch().then(() => console.log('Бот запущен с поддержкой Google Sheets!'));
+bot.launch()
+    .then(() => console.log('🚀 Бот успешно запущен и готов к оплатам!'))
+    .catch((err) => console.error('Ошибка запуска:', err));
+
+// Мягкая остановка
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
