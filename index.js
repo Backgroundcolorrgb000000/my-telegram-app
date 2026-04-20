@@ -45,17 +45,35 @@ bot.on('web_app_data', async (ctx) => {
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
+// ОБЯЗАТЕЛЬНО добавь слово async перед (ctx)
 bot.on('successful_payment', async (ctx) => { 
     try {
-        await ctx.reply('✅ Оплата получена!'); // Теперь await будет работать
-        
+        // Теперь await здесь будет работать корректно
+        await ctx.reply('✅ Оплата получена! Скоро мы изменим статус вашего заказа.');
+
         const payment = ctx.message.successful_payment;
-        // ... остальной код
+        const orderInfo = JSON.parse(payment.invoice_payload);
+
+        let itemsList = '';
+        for (const [name, count] of Object.entries(orderInfo.items)) {
+            if (count > 0) itemsList += `▫️ ${name}: ${count} шт.\n`;
+        }
+
+        // Уведомление АДМИНУ
+        await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!**\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList}`, {
+            parse_mode: 'Markdown',
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: '🛠 В сборку', callback_data: `st_build_${orderInfo.userId}` }],
+                    [{ text: '🚚 Курьеру', callback_data: `st_ship_${orderInfo.userId}` }],
+                    [{ text: '✅ Завершить', callback_data: `st_done_${orderInfo.userId}` }]
+                ]
+            }
+        });
     } catch (e) {
-        console.error(e);
+        console.error("Ошибка в successful_payment:", e);
     }
 });
-
     // Уведомление АДМИНУ с кнопками
     await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!**\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList}`, {
         parse_mode: 'Markdown',
