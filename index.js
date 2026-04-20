@@ -2,7 +2,7 @@ const { Telegraf } = require('telegraf');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 
-// Берем переменные строго из Railway
+// 1. ПЕРЕМЕННЫЕ
 const token = process.env.BOT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_ID;
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
@@ -15,11 +15,31 @@ if (!token) {
 
 const bot = new Telegraf(token);
 
-// Блок получения данных из Mini App (ИСПРАВЛЕННЫЙ)
+// 2. ФУНКЦИЯ ЗАПИСИ (Теперь она добавлена в код)
+async function saveOrderToSheets(rowData) {
+    try {
+        const serviceAccountAuth = new JWT({
+            email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+            key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+            scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+        });
+
+        const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
+        await doc.loadInfo();
+        const sheet = doc.sheetsByIndex[0]; // Берем самый первый лист
+
+        await sheet.addRow(rowData);
+        console.log("✅ Данные успешно отправлены в Google Sheets");
+    } catch (e) {
+        console.error("❌ Ошибка внутри функции saveOrderToSheets:", e.message);
+        throw e; // Пробрасываем ошибку, чтобы её поймал основной логгер
+    }
+}
+
+// 3. ОБРАБОТКА ДАННЫХ ИЗ MINI APP
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
-        // Проверка: строка это или уже объект (решает проблему [object Object])
         if (typeof ctx.webAppData.data === 'string') {
             data = JSON.parse(ctx.webAppData.data);
         } else if (ctx.webAppData.data.text) {
@@ -31,11 +51,10 @@ bot.on('web_app_data', async (ctx) => {
         console.log("Данные заказа получены:", data);
 
         const totalAmount = Math.round(data.totalPrice || 0);
-        if (totalAmount <= 0) return ctx.reply('Ошибка: корзина пуста или цена не определена.');
+        if (totalAmount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
-        await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят. Формирую счет для оплаты...`);
+        await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят. Формирую счет...`);
 
-        // Выставление счета
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
             description: 'Ваш заказ из каталога',
@@ -45,52 +64,51 @@ bot.on('web_app_data', async (ctx) => {
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
-            prices: [{ label: 'Товары', amount: totalAmount * 100 }], // Суммы в Telegram * 100
+            prices: [{ label: 'Товары', amount: totalAmount * 100 }],
             start_parameter: 'mebel-order'
         });
 
     } catch (e) {
-        console.error("Критическая ошибка инвойса:", e.message);
-        ctx.reply("Произошла ошибка при обработке заказа. Попробуйте еще раз.");
+        console.error("Ошибка инвойса:", e.message);
     }
 });
 
-// Эти два обработчика ОБЯЗАТЕЛЬНЫ для работы платежей
+// 4. ПРОВЕРКА ПЕРЕД ОПЛАТОЙ
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
+// 5. ПОСЛЕ УСПЕШНОЙ ОПЛАТЫ
 bot.on('successful_payment', async (ctx) => {
-    console.log("=== ОБНАРУЖЕН ПЛАТЕЖ ==="); // Вы увидите это в логах Railway
+    console.log("=== ОБНАРУЖЕН ПЛАТЕЖ ===");
     
     try {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
         
-        // Формируем список товаров из объекта products
         const items = orderInfo.items || {};
         const itemsString = Object.entries(items)
             .map(([id, qty]) => `${id}: ${qty}`)
             .join(', ');
 
+        // Эти ключи должны СТРОГО совпадать с названиями колонок в вашей таблице
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
             "Сумма (сум)": payment.total_amount / 100,
-            "Товары": itemsString || "Товар не указан",
+            "Товары": itemsString || "Заказ мебели",
             "ID пользователя": String(ctx.from.id)
         };
 
-        console.log("Попытка записи в Google Sheets:", rowData);
+        console.log("Попытка записи в таблицу:", rowData);
 
-        // ВАЖНО: Проверьте, что в saveOrderToSheets ключи совпадают с колонками в таблице!
+        // ВЫЗОВ ФУНКЦИИ
         await saveOrderToSheets(rowData);
         
         console.log("✅ ЗАПИСЬ В ТАБЛИЦУ ВЫПОЛНЕНА");
-        await ctx.reply("🎉 Спасибо! Ваш заказ сохранен в таблицу.");
+        await ctx.reply("🎉 Спасибо! Оплата прошла, данные сохранены в Google Таблицу.");
 
     } catch (error) {
         console.error("❌ ОШИБКА ПРИ ЗАПИСИ ЗАКАЗА:", error.message);
-        // Если здесь будет ошибка, вы увидите её в логах Railway красным цветом
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот работает, инвойсы исправлены!'));
+bot.launch().then(() => console.log('🚀 Бот запущен! Оплата и Таблицы активны.'));
