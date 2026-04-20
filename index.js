@@ -29,41 +29,47 @@ async function saveOrderToSheets(rowData) {
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
-        const raw = ctx.webAppData.data;
+        const rawData = ctx.webAppData.data;
 
-        // Если пришла строка, парсим её
-        if (typeof raw === 'string') {
-            data = JSON.parse(raw);
-        } 
-        // Если пришел объект с методами (как на Screenshot_8)
-        else if (raw && typeof raw.text === 'function') {
-            data = JSON.parse(await raw.text());
+        // ЛОГИКА ДЛЯ ИСПРАВЛЕНИЯ [Function: json]
+        // Если данные пришли в специальном формате Telegraf
+        if (rawData && typeof rawData.text === 'function') {
+            const textData = await rawData.text();
+            data = JSON.parse(textData);
+        } else if (typeof rawData === 'string') {
+            data = JSON.parse(rawData);
         } else {
-            data = raw;
+            data = rawData;
         }
 
-        console.log("Данные извлечены:", data);
+        console.log("Данные успешно распакованы:", data);
 
+        // Проверяем цену (используем ключи из вашего Mini App)
         const totalAmount = Math.round(data.totalPrice || 0);
-        
+
         if (totalAmount <= 0) {
-            return ctx.reply('Ошибка: сумма заказа не определена в корзине.');
+            console.error("Ошибка: сумма 0 или не найдена в", data);
+            return ctx.reply('Ошибка: не удалось определить стоимость товаров.');
         }
 
         await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят.`);
 
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
-            description: 'Ваш заказ',
-            payload: JSON.stringify({ items: data.products || {} }),
+            description: 'Ваш заказ из каталога',
+            payload: JSON.stringify({
+                userId: ctx.from.id,
+                items: data.products || {}
+            }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: totalAmount * 100 }],
-            start_parameter: 'order'
+            start_parameter: 'mebel-order'
         });
+
     } catch (e) {
-        console.error("Сбой парсинга:", e.message);
-        ctx.reply("Ошибка обработки данных из корзины.");
+        console.error("Критическая ошибка парсинга:", e.message);
+        ctx.reply("Ошибка при обработке данных из корзины. Попробуйте еще раз.");
     }
 });
 
