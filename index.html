@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FORMA Premium</title>
+    <title>FORMA Furniture Store</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #ffffff;
             --text-color: #1a1a1a;
-            --accent-color: #d4a373; /* Цвет для акцентов как на макете */
+            --accent-color: #d4a373;
             --sec-bg: #fdfaf7;
             --hint: #8e8e93;
         }
@@ -32,167 +32,51 @@
 
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
 
-        /* СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ */
-        .promo-banner {
+        /* БАННЕР НОВАЯ КОЛЛЕКЦИЯ */
+        .hero-banner {
             margin: 0 20px 30px 20px;
             background-color: var(--sec-bg);
             border-radius: 25px;
-            padding: 30px;
+            padding: 40px 30px;
             position: relative;
-            display: flex;
-            align-items: center;
             overflow: hidden;
         }
+        .hero-banner h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 2px; color: var(--hint); margin: 0; }
+        .hero-banner h1 { font-size: 38px; font-weight: 300; margin: 10px 0; }
+        .hero-banner p { font-size: 12px; color: var(--hint); line-height: 1.6; margin: 0; }
 
-        .promo-text { flex: 1; z-index: 2; }
-        .promo-text h3 { 
-            font-size: 11px; 
-            text-transform: uppercase; 
-            color: var(--accent-color); 
-            letter-spacing: 1px;
-            margin: 0 0 10px 0;
-        }
-        .promo-text h2 { font-size: 20px; font-weight: 400; margin: 0 0 15px 0; line-height: 1.2; }
-        .promo-link { color: var(--hint); font-size: 13px; text-decoration: underline; }
-
-        .promo-img {
-            width: 140px;
-            position: absolute;
-            right: -10px;
-            bottom: 10px;
-            opacity: 0.9;
-        }
-
-        .section-title {
-            padding: 0 20px;
-            font-size: 20px;
-            font-weight: 400;
-            margin-bottom: 20px;
-        }
-
-        /* ВЫБОР РЕДАКЦИИ (Горизонтальная карточка) */
-        .editor-choice {
+        /* СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ */
+        .promo-banner {
             margin: 0 20px 30px 20px;
+            background-color: #fdf2f0;
+            border-radius: 25px;
+            padding: 25px;
             display: flex;
             align-items: center;
-            gap: 20px;
+            position: relative;
         }
+        .promo-text h4 { font-size: 10px; text-transform: uppercase; color: #e57373; margin: 0 0 5px 0; }
+        .promo-text h2 { font-size: 18px; font-weight: 400; margin: 0 0 10px 0; }
+        .promo-link { font-size: 12px; text-decoration: underline; color: var(--hint); }
+        .promo-img { width: 100px; position: absolute; right: 10px; top: 10px; }
 
-        .editor-img {
-            width: 40%;
-            aspect-ratio: 1;
-            object-fit: contain;
-            background: var(--sec-bg);
-            border-radius: 20px;
-        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-bottom: 15px; }
+        .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
+        .view-all { font-size: 12px; color: var(--hint); }
 
-        .editor-info { width: 60%; }
-        .editor-tag { font-size: 9px; text-transform: uppercase; color: var(--accent-color); letter-spacing: 1px; margin-bottom: 5px; }
-        .editor-name { font-size: 18px; margin: 0 0 8px 0; font-weight: 400; }
-        .editor-desc { font-size: 11px; color: var(--hint); line-height: 1.4; margin-bottom: 12px; }
-        .editor-price { font-size: 16px; font-weight: 600; }
-        .editor-price span { font-size: 12px; font-weight: 300; margin-right: 5px; }
-
-        /* Категории и Сетка из предыдущего шага */
+        /* КАТЕГОРИИ */
         .categories { display: flex; overflow-x: auto; padding: 0 20px; gap: 15px; margin-bottom: 30px; scrollbar-width: none; }
-        .cat-item { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
-        .cat-icon { width: 55px; height: 55px; background: #f8f8f8; border-radius: 15px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .cat-item span { font-size: 10px; color: var(--hint); }
+        .cat-item { display: flex; flex-direction: column; align-items: center; min-width: 75px; }
+        .cat-icon { width: 70px; height: 70px; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; border: 1px solid transparent; }
+        .cat-item.active .cat-icon { border-color: #000; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        .cat-item span { font-size: 11px; color: var(--text-color); }
 
-        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; }
-        .product-card { position: relative; }
-        .product-img { width: 100%; border-radius: 20px; background: #f8f8f8; margin-bottom: 10px; }
-        .p-title { font-size: 13px; margin: 0; }
-        .p-price { font-size: 14px; font-weight: 600; margin: 5px 0; }
-
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #eee; z-index: 10; }
-        .nav-btn { font-size: 20px; filter: grayscale(1); opacity: 0.5; }
-        .nav-btn.active { filter: grayscale(0); opacity: 1; }
-    </style>
-</head>
-<body>
-
-    <header>
-        <div class="logo">FORMA</div>
-        <div>🔍</div>
-    </header>
-
-    <div class="promo-banner">
-        <div class="promo-text">
-            <h3>Специальное предложение</h3>
-            <h2>Скидка 15%<br>на гостиные</h2>
-            <div class="promo-link">Подробнее</div>
-        </div>
-        <img src="https://img.icons8.com/emoji/96/000000/sofa-emoji.png" class="promo-img">
-    </div>
-
-    <div class="section-title">Категории</div>
-    <div class="categories">
-        <div class="cat-item"><div class="cat-icon">🛋</div><span>Диваны</span></div>
-        <div class="cat-item"><div class="cat-icon">🪑</div><span>Кресла</span></div>
-        <div class="cat-item"><div class="cat-icon">🛏</div><span>Кровати</span></div>
-        <div class="cat-item"><div class="cat-icon">🪞</div><span>Зеркала</span></div>
-    </div>
-
-    <div class="section-title">Выбор редакции</div>
-    <div class="editor-choice" onclick="addToCart('mirror_arch', 18990)">
-        <img src="https://img.icons8.com/plasticine/200/mirror.png" class="editor-img">
-        <div class="editor-info">
-            <div class="editor-tag">Лимитированная серия</div>
-            <h4 class="editor-name">Зеркало Arch</h4>
-            <p class="editor-desc">Арочная форма, латунная рама. Создаёт ощущение объема и света.</p>
-            <div class="editor-price"><span>от</span>18 990 ₽</div>
-        </div>
-    </div>
-
-    <div class="section-title">Популярное</div>
-    <div class="products-grid" id="grid"></div>
-
-    <div class="nav-bar">
-        <div class="nav-btn active">🏠</div>
-        <div class="nav-btn">🔍</div>
-        <div class="nav-btn">❤️</div>
-        <div class="nav-btn">🛒</div>
-    </div>
-
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    const products = [
-        { id: 'bed_lund', name: 'Кровать Lund', price: 64990, img: 'https://img.icons8.com/plasticine/200/bed.png' },
-        { id: 'lamp_mist', name: 'Лампа Mist', price: 9990, img: 'https://img.icons8.com/plasticine/200/lamp.png' }
-    ];
-
-    let cart = {};
-
-    function render() {
-        const grid = document.getElementById('grid');
-        products.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'product-card';
-            div.onclick = () => addToCart(p.id, p.price);
-            div.innerHTML = `
-                <img src="${p.img}" class="product-img">
-                <p class="p-title">${p.name}</p>
-                <p class="p-price">${p.price.toLocaleString()} ₽</p>
-            `;
-            grid.appendChild(div);
-        });
-    }
-
-    function addToCart(id, price) {
-        cart[id] = (cart[id] || 0) + 1;
-        tg.HapticFeedback.impactOccurred('medium');
-        
-        let total = 0;
-        for(let k in cart) total += price; // Упрощенный расчет для примера
-
-        tg.MainButton.setText(`В корзине товаров на ${total.toLocaleString()} ₽`);
-        tg.MainButton.show();
-    }
-
-    render();
-</script>
-</body>
-</html>
+        /* ВЫБОР РЕДАКЦИИ */
+        .editor-choice { margin: 0 20px 30px 20px; display: flex; gap: 20px; align-items: center; }
+        .editor-img-box { width: 40%; background: #f8f8f8; border-radius: 20px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 50px; }
+        .editor-info { width: 60%; }
+        .tag-mini { font-size: 8px; text-transform: uppercase; color: var(--accent-color); letter-spacing: 1px; margin-bottom: 5px; }
+        .editor-info h4 { font-size: 16px; font-weight: 400; margin: 0 0 5px 0; }
+        .editor-info p { font-size: 10px; color: var(--hint); line-height: 1.4; margin-bottom: 10px; }
+        .price-big { font-size: 16px; font-weight: 600; }
+        .price-big span { font-size: 12px; font-weight: 300; margin
