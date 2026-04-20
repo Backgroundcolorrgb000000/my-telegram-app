@@ -59,8 +59,27 @@ bot.on('web_app_data', async (ctx) => {
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
 bot.on('successful_payment', async (ctx) => {
-    await ctx.reply('🎉 Оплата прошла успешно! Мы скоро свяжемся с вами.');
-    // Здесь можно вызвать saveOrderToSheets
+    try {
+        const payment = ctx.message.successful_payment;
+        const orderInfo = JSON.parse(payment.invoice_payload);
+        
+        // Формируем красивый список товаров из объекта products
+        let itemsList = "";
+        for (let key in orderInfo.items) {
+            itemsList += `${key} (${orderInfo.items[key]} шт); `;
+        }
+
+        await saveOrderToSheets({
+            name: ctx.from.first_name,
+            amount: payment.total_amount / 100,
+            items: itemsList || "Мебель",
+            userId: ctx.from.id
+        });
+
+        await ctx.reply("✨ Оплата получена! Ваш заказ передан в работу.");
+    } catch (e) {
+        console.error("Ошибка после оплаты:", e);
+    }
 });
 
 bot.launch().then(() => console.log('🚀 Бот работает, инвойсы исправлены!'));
