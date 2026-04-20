@@ -1,6 +1,6 @@
 const { Telegraf } = require('telegraf');
 
-const bot = new Telegraf('8474220877:AAHmSXn0v-MRbWSZMAWGr16EYoPF1SXD3SQ');
+const bot = new Telegraf('8474220877:AAE264U782tz46lkIIycCW-fvSBcuBG-B6E');
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 
