@@ -4,9 +4,7 @@ const { JWT } = require('google-auth-library');
 
 // 1. ПЕРЕМЕННЫЕ
 const token = process.env.BOT_TOKEN;
-const ADMIN_ID = process.env.ADMIN_ID;
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 
 if (!token) {
     console.error("ОШИБКА: BOT_TOKEN отсутствует в Railway Variables!");
@@ -18,10 +16,6 @@ const bot = new Telegraf(token);
 // 2. ФУНКЦИЯ ЗАПИСИ
 async function saveOrderToSheets(rowData) {
     try {
-        if (!process.env.GOOGLE_PRIVATE_KEY) {
-            throw new Error("GOOGLE_PRIVATE_KEY не найден в переменных окружения");
-        }
-
         const serviceAccountAuth = new JWT({
             email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
             key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
@@ -44,14 +38,9 @@ async function saveOrderToSheets(rowData) {
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
-        // Безопасный парсинг данных
-        try {
-            data = typeof ctx.webAppData.data === 'string' 
-                ? JSON.parse(ctx.webAppData.data) 
-                : JSON.parse(ctx.webAppData.data.text());
-        } catch (parseError) {
-            data = ctx.webAppData.data;
-        }
+        // Исправляем ошибку [object Object] со Screenshot_2
+        const rawData = ctx.webAppData.data;
+        data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
 
         console.log("Данные заказа получены:", data);
 
@@ -60,12 +49,13 @@ bot.on('web_app_data', async (ctx) => {
 
         await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят. Формирую счет...`);
 
+        // Выставляем инвойс
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
             description: 'Ваш заказ из каталога',
             payload: JSON.stringify({
                 userId: ctx.from.id,
-                items: data.products || data.order // пробуем оба варианта ключей
+                items: data.products
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
@@ -75,14 +65,12 @@ bot.on('web_app_data', async (ctx) => {
 
     } catch (e) {
         console.error("Ошибка инвойса:", e.message);
-        ctx.reply("Произошла ошибка при создании счета.");
     }
 });
 
-// 4. ПРОВЕРКА ПЕРЕД ОПЛАТОЙ (ОБЯЗАТЕЛЬНО)
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// 5. ПОСЛЕ УСПЕШНОЙ ОПЛАТЫ
+// 4. ПОСЛЕ УСПЕШНОЙ ОПЛАТЫ
 bot.on('successful_payment', async (ctx) => {
     console.log("=== ОБНАРУЖЕН ПЛАТЕЖ ===");
     
@@ -90,18 +78,16 @@ bot.on('successful_payment', async (ctx) => {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
         
-        // Формируем список товаров
-        let itemsString = "Мебель: ";
-        if (orderInfo.items) {
-            itemsString = Object.entries(orderInfo.items)
-                .map(([id, qty]) => `${id} (${qty}шт)`)
-                .join(', ');
-        }
+        const items = orderInfo.items || {};
+        const itemsString = Object.entries(items)
+            .map(([id, qty]) => `${id} (${qty}шт)`)
+            .join(', ');
 
+        // СТРОГО под колонки из вашего Screenshot_14
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
-            "Адрес": "Не указан", // ДОБАВЬТЕ ЭТУ СТРОКУ, так как она есть в таблице
+            "Адрес": "Самовывоз/Из приложения", // Добавили колонку "Адрес" из вашей таблицы
             "Сумма (сум)": payment.total_amount / 100,
             "Товары": itemsString || "Заказ мебели",
             "ID пользователя": String(ctx.from.id)
@@ -112,16 +98,11 @@ bot.on('successful_payment', async (ctx) => {
         await saveOrderToSheets(rowData);
         
         console.log("✅ ЗАПИСЬ В ТАБЛИЦУ ВЫПОЛНЕНА");
-        await ctx.reply("🎉 Спасибо! Оплата прошла, данные сохранены в Google Таблицу.");
+        await ctx.reply("🎉 Спасибо! Данные сохранены в таблицу.");
 
     } catch (error) {
         console.error("❌ ОШИБКА ПРИ ЗАПИСИ ЗАКАЗА:", error.message);
     }
 });
 
-// Запуск
-bot.launch().then(() => console.log('🚀 Бот запущен! Оплата и Таблицы активны.'));
-
-// Мягкая остановка (защита от ошибки 409 Conflict)
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+bot.launch().then(() => console.log('🚀 Бот запущен!'));
