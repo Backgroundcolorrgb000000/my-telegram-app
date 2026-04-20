@@ -101,8 +101,9 @@ bot.on('successful_payment', async (ctx) => {
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
+            "Адрес": "Не указан", // ДОБАВЬТЕ ЭТУ СТРОКУ, так как она есть в таблице
             "Сумма (сум)": payment.total_amount / 100,
-            "Товары": itemsString,
+            "Товары": itemsString || "Заказ мебели",
             "ID пользователя": String(ctx.from.id)
         };
 
