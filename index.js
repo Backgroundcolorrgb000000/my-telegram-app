@@ -15,9 +15,13 @@ if (!token) {
 
 const bot = new Telegraf(token);
 
-// 2. ФУНКЦИЯ ЗАПИСИ (Теперь она добавлена в код)
+// 2. ФУНКЦИЯ ЗАПИСИ
 async function saveOrderToSheets(rowData) {
     try {
+        if (!process.env.GOOGLE_PRIVATE_KEY) {
+            throw new Error("GOOGLE_PRIVATE_KEY не найден в переменных окружения");
+        }
+
         const serviceAccountAuth = new JWT({
             email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
             key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
@@ -26,13 +30,13 @@ async function saveOrderToSheets(rowData) {
 
         const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
         await doc.loadInfo();
-        const sheet = doc.sheetsByIndex[0]; // Берем самый первый лист
+        const sheet = doc.sheetsByIndex[0];
 
         await sheet.addRow(rowData);
         console.log("✅ Данные успешно отправлены в Google Sheets");
     } catch (e) {
         console.error("❌ Ошибка внутри функции saveOrderToSheets:", e.message);
-        throw e; // Пробрасываем ошибку, чтобы её поймал основной логгер
+        throw e;
     }
 }
 
@@ -40,11 +44,12 @@ async function saveOrderToSheets(rowData) {
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
-        if (typeof ctx.webAppData.data === 'string') {
-            data = JSON.parse(ctx.webAppData.data);
-        } else if (ctx.webAppData.data.text) {
-            data = JSON.parse(ctx.webAppData.data.text());
-        } else {
+        // Безопасный парсинг данных
+        try {
+            data = typeof ctx.webAppData.data === 'string' 
+                ? JSON.parse(ctx.webAppData.data) 
+                : JSON.parse(ctx.webAppData.data.text());
+        } catch (parseError) {
             data = ctx.webAppData.data;
         }
 
@@ -60,7 +65,7 @@ bot.on('web_app_data', async (ctx) => {
             description: 'Ваш заказ из каталога',
             payload: JSON.stringify({
                 userId: ctx.from.id,
-                items: data.products
+                items: data.products || data.order // пробуем оба варианта ключей
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
@@ -70,10 +75,11 @@ bot.on('web_app_data', async (ctx) => {
 
     } catch (e) {
         console.error("Ошибка инвойса:", e.message);
+        ctx.reply("Произошла ошибка при создании счета.");
     }
 });
 
-// 4. ПРОВЕРКА ПЕРЕД ОПЛАТОЙ
+// 4. ПРОВЕРКА ПЕРЕД ОПЛАТОЙ (ОБЯЗАТЕЛЬНО)
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
 // 5. ПОСЛЕ УСПЕШНОЙ ОПЛАТЫ
@@ -84,23 +90,24 @@ bot.on('successful_payment', async (ctx) => {
         const payment = ctx.message.successful_payment;
         const orderInfo = JSON.parse(payment.invoice_payload);
         
-        const items = orderInfo.items || {};
-        const itemsString = Object.entries(items)
-            .map(([id, qty]) => `${id}: ${qty}`)
-            .join(', ');
+        // Формируем список товаров
+        let itemsString = "Мебель: ";
+        if (orderInfo.items) {
+            itemsString = Object.entries(orderInfo.items)
+                .map(([id, qty]) => `${id} (${qty}шт)`)
+                .join(', ');
+        }
 
-        // Эти ключи должны СТРОГО совпадать с названиями колонок в вашей таблице
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
             "Сумма (сум)": payment.total_amount / 100,
-            "Товары": itemsString || "Заказ мебели",
+            "Товары": itemsString,
             "ID пользователя": String(ctx.from.id)
         };
 
         console.log("Попытка записи в таблицу:", rowData);
 
-        // ВЫЗОВ ФУНКЦИИ
         await saveOrderToSheets(rowData);
         
         console.log("✅ ЗАПИСЬ В ТАБЛИЦУ ВЫПОЛНЕНА");
@@ -111,4 +118,9 @@ bot.on('successful_payment', async (ctx) => {
     }
 });
 
+// Запуск
 bot.launch().then(() => console.log('🚀 Бот запущен! Оплата и Таблицы активны.'));
+
+// Мягкая остановка (защита от ошибки 409 Conflict)
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
