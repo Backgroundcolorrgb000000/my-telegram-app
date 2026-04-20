@@ -1,127 +1,193 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Furniture Store TMA</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mebel Shop Premium</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-color: var(--tg-theme-bg-color, #fff);
-            color: var(--tg-theme-text-color, #000);
-            font-family: sans-serif;
-            margin: 0;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        :root {
+            --bg-color: var(--tg-theme-bg-color, #ffffff);
+            --text-color: var(--tg-theme-text-color, #222222);
+            --hint-color: var(--tg-theme-hint-color, #999999);
+            --button-color: var(--tg-theme-button-color, #248bed);
+            --button-text: var(--tg-theme-button-text-color, #ffffff);
+            --sec-bg: var(--tg-theme-secondary-bg-color, #f4f4f7);
         }
 
-        .container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            gap: 10px;
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        header {
+            padding: 20px 16px;
+            text-align: left;
+        }
+
+        #user-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .section-title {
+            padding: 0 16px;
+            font-size: 14px;
+            text-transform: uppercase;
+            color: var(--hint-color);
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        /* Поля ввода */
+        .form-group {
+            background: var(--sec-bg);
+            margin: 0 16px 20px 16px;
+            border-radius: 12px;
+            padding: 4px 12px;
+        }
+
+        input {
             width: 100%;
+            background: transparent;
+            border: none;
+            padding: 12px 0;
+            color: var(--text-color);
+            font-size: 16px;
+            outline: none;
+        }
+
+        input:first-child {
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+        /* Сетка товаров */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            padding: 16px;
         }
 
         .item {
-            width: 45%;
-            background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
-            border-radius: 12px;
-            padding: 10px;
-            margin-bottom: 10px;
-            text-align: center;
-            box-sizing: border-box;
+            background: var(--sec-bg);
+            border-radius: 16px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.1s ease;
+        }
+
+        .item:active {
+            transform: scale(0.98);
         }
 
         .img {
             width: 100%;
-            border-radius: 8px;
-            margin-bottom: 5px;
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 10px;
         }
 
+        .item-name {
+            font-size: 15px;
+            font-weight: 600;
+            margin: 0 0 4px 0;
+        }
+
+        .item-price {
+            color: var(--button-color);
+            font-weight: 700;
+            font-size: 14px;
+            margin-bottom: 12px;
+        }
+
+        /* Степпер (кнопки +/-) */
         .stepper {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
-            margin-top: 10px;
+            background: var(--bg-color);
+            border-radius: 20px;
+            padding: 4px;
+            margin-top: auto;
         }
 
         .btn-step {
-            background-color: var(--tg-theme-button-color, #248bed);
-            color: var(--tg-theme-button-text-color, #ffffff);
+            background-color: var(--button-color);
+            color: var(--button-text);
             border: none;
-            border-radius: 6px;
-            width: 30px;
-            height: 30px;
+            border-radius: 50%;
+            width: 28px;
+            height: 28px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            font-weight: bold;
         }
 
         .count-display {
-            font-weight: bold;
-            min-width: 15px;
+            font-weight: 600;
+            font-size: 14px;
         }
 
-        #user-name {
-            margin-bottom: 20px;
-            font-weight: bold;
-        }
+        /* Анимация пустой корзины */
+        .hidden { display: none; }
     </style>
 </head>
-
-
-    
 <body>
 
-    <p id="user-name">Загрузка...</p>
-    
-    <div id="user-info" style="padding: 15px; background: #fff; border-bottom: 1px solid #eee;">
-    <input type="text" id="user_name" placeholder="Ваше имя" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
-    <input type="text" id="user_address" placeholder="Адрес доставки" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
-</div>
-    
+    <header>
+        <p id="user-name">Привет!</p>
+    </header>
+
+    <div class="section-title">Данные доставки</div>
+    <div class="form-group">
+        <input type="text" id="user_name" placeholder="Как вас зовут?">
+        <input type="text" id="user_address" placeholder="Адрес в Ташкенте">
+    </div>
+
+    <div class="section-title">Каталог мебели</div>
     <div id="item-list" class="container"></div>
 
 <script>
 const tg = window.Telegram.WebApp;
 tg.expand();
+tg.ready();
 
-// Элементы интерфейса
 const nameElement = document.getElementById('user-name');
 const itemList = document.getElementById('item-list');
 
-// 1. Данные о товарах
 const products = [
-    { id: 'sofa', name: 'Стильный диван', price: 25000, img: 'https://via.placeholder.com/150' },
-    { id: 'chair', name: 'Мягкое кресло', price: 15000, img: 'https://via.placeholder.com/150' },
-    { id: 'table', name: 'Обеденный стол', price: 10000, img: 'https://via.placeholder.com/150' }
+    { id: 'sofa', name: 'Стильный диван', price: 2500000, img: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=300&q=80' },
+    { id: 'chair', name: 'Мягкое кресло', price: 850000, img: 'https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?auto=format&fit=crop&w=300&q=80' },
+    { id: 'table', name: 'Обеденный стол', price: 1200000, img: 'https://images.unsplash.com/photo-1577145900570-4c0567ec3951?auto=format&fit=crop&w=300&q=80' },
+    { id: 'bed', name: 'Кровать Loft', price: 3400000, img: 'https://images.unsplash.com/photo-1505693419173-42b92568f01a?auto=format&fit=crop&w=300&q=80' }
 ];
 
-// Состояние корзины
 let cart = {};
-let finalPriceWithDiscount = 0;
 
-// 2. Приветствие пользователя
 const user = tg.initDataUnsafe?.user;
-nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Привет, Гость!";
+nameElement.innerText = user ? `Привет, ${user.first_name}!` : "Привет!";
 
-// 3. Функция изменения количества товара
 function changeCount(productId, delta) {
     if (!cart[productId]) cart[productId] = 0;
-    
     cart[productId] += delta;
-    
     if (cart[productId] < 0) cart[productId] = 0;
 
-    // Легкая вибрация при нажатии
     tg.HapticFeedback.impactOccurred('light');
-    
     renderProducts();
     updateCartTotal();
 }
 
-// 4. Отрисовка списка товаров
 function renderProducts() {
     itemList.innerHTML = '';
     products.forEach(product => {
@@ -130,10 +196,10 @@ function renderProducts() {
         itemDiv.className = 'item';
         itemDiv.innerHTML = `
             <img src="${product.img}" class="img">
-            <p>${product.name}</p>
-            <p><b>${product.price} руб.</b></p>
+            <p class="item-name">${product.name}</p>
+            <p class="item-price">${product.price.toLocaleString()} сум</p>
             <div class="stepper">
-                <button class="btn-step" onclick="changeCount('${product.id}', -1)">-</button>
+                <button class="btn-step" onclick="changeCount('${product.id}', -1)">−</button>
                 <span class="count-display">${count}</span>
                 <button class="btn-step" onclick="changeCount('${product.id}', 1)">+</button>
             </div>`;
@@ -141,7 +207,6 @@ function renderProducts() {
     });
 }
 
-// 5. Функция подсчета итога и управления MainButton
 function updateCartTotal() {
     let totalPrice = 0;
     let totalCount = 0;
@@ -154,40 +219,40 @@ function updateCartTotal() {
         }
     }
 
-    // Применяем скидку 10%
-    finalPriceWithDiscount = totalPrice * 0.9;
-
     if (totalCount > 0) {
-        tg.MainButton.setText(`Оформить заказ: ${finalPriceWithDiscount} руб.`);
+        tg.MainButton.setText(`Оформить заказ: ${totalPrice.toLocaleString()} сум`);
         tg.MainButton.show();
+        tg.MainButton.setParams({ color: '#248bed' });
     } else {
         tg.MainButton.hide();
     }
 }
 
-// 6. Обработка нажатия на главную кнопку (Отправка данных)
-// Обработка нажатия на главную кнопку
 tg.MainButton.onClick(() => {
-    // Получаем значения из новых полей ввода
     const name = document.getElementById('user_name').value;
     const address = document.getElementById('user_address').value;
 
     if (!name || !address) {
-        tg.showAlert("Пожалуйста, заполните имя и адрес!");
+        tg.showAlert("Укажите имя и адрес для доставки!");
         return;
     }
 
     const orderData = {
         products: cart,
-        totalPrice: finalPriceWithDiscount,
-        customerName: name,      // Должно совпадать с index.js
-        customerAddress: address  // Должно совпадать с index.js
+        totalPrice: 0, 
+        customerName: name,
+        customerAddress: address
     };
+    
+    // Считаем итоговую цену перед отправкой
+    for (let id in cart) {
+        const product = products.find(p => p.id === id);
+        if (product) orderData.totalPrice += product.price * cart[id];
+    }
 
     tg.sendData(JSON.stringify(orderData));
 });
 
-// Инициализация при запуске
 renderProducts();
 updateCartTotal();
 </script>
