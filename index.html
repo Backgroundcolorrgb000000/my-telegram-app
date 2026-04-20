@@ -79,4 +79,146 @@
         .editor-info h4 { font-size: 16px; font-weight: 400; margin: 0 0 5px 0; }
         .editor-info p { font-size: 10px; color: var(--hint); line-height: 1.4; margin-bottom: 10px; }
         .price-big { font-size: 16px; font-weight: 600; }
-        .price-big span { font-size: 12px; font-weight: 300; margin
+        .price-big span { font-size: 12px; font-weight: 300; margin-right: 4px; }
+
+        /* СЕТКА ТОВАРОВ */
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; }
+        .product-card { position: relative; }
+        .product-img-box { width: 100%; aspect-ratio: 1; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; position: relative; }
+        .badge { position: absolute; top: 10px; left: 10px; background: #fff; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 600; }
+        .fav-icon { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #eee; }
+        .fav-icon.active { color: #ff5252; }
+        .p-name { font-size: 13px; font-weight: 400; margin: 0; }
+        .p-price { font-size: 15px; font-weight: 600; margin: 5px 0; }
+
+        /* НАВИГАЦИЯ */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #eee; z-index: 100; }
+        .nav-item { text-align: center; color: #ccc; }
+        .nav-item.active { color: #000; }
+        .nav-item div { font-size: 20px; }
+        .nav-item p { font-size: 9px; margin: 4px 0 0 0; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">FORMA</div>
+        <div style="font-size: 20px; display: flex; gap: 15px;"><span>🔍</span><span>👜</span></div>
+    </header>
+
+    <div class="hero-banner">
+        <h3>Новая коллекция</h3>
+        <h1>Весна<br>2025</h1>
+        <p>Натуральные материалы<br>Скандинавский стиль</p>
+    </div>
+
+    <div class="section-header">
+        <h2>Категории</h2>
+        <div class="view-all">Все ➔</div>
+    </div>
+    
+    <div class="categories">
+        <div class="cat-item active"><div class="cat-icon">🛋</div><span>Диваны</span></div>
+        <div class="cat-item"><div class="cat-icon">🪑</div><span>Кресла</span></div>
+        <div class="cat-item"><div class="cat-icon">🛏</div><span>Кровати</span></div>
+        <div class="cat-item"><div class="cat-icon">🪞</div><span>Зеркала</span></div>
+    </div>
+
+    <div class="promo-banner">
+        <div class="promo-text">
+            <h4>Специальное предложение</h4>
+            <h2>Скидка 15%<br>на гостиные</h2>
+            <div class="promo-link">Подробнее</div>
+        </div>
+        <div class="promo-img">🛋️</div>
+    </div>
+
+    <div class="section-header">
+        <h2>Выбор редакции</h2>
+    </div>
+
+    <div class="editor-choice" onclick="addToCart('mirror_arch', 1899000)">
+        <div class="editor-img-box">🪞</div>
+        <div class="editor-info">
+            <div class="tag-mini">Лимитированная серия</div>
+            <h4>Зеркало Arch</h4>
+            <p>Арочная форма, латунная рама. Создаёт ощущение объема и света.</p>
+            <div class="price-big"><span>от</span>1 899 000 сум</div>
+        </div>
+    </div>
+
+    <div class="section-header">
+        <h2>Популярное</h2>
+    </div>
+
+    <div class="products-grid" id="grid"></div>
+
+    <div class="nav-bar">
+        <div class="nav-item active"><div>🏠</div><p>Главная</p></div>
+        <div class="nav-item"><div>🔍</div><p>Поиск</p></div>
+        <div class="nav-item"><div>❤️</div><p>Избранное</p></div>
+        <div class="nav-item"><div>🛒</div><p>Корзина</p></div>
+        <div class="nav-item"><div>👤</div><p>Профиль</p></div>
+    </div>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const products = [
+        { id: 'sofa_lund', name: 'Диван Lund', price: 8999000, icon: '🛋', tag: 'NEW', fav: false },
+        { id: 'chair_mist', name: 'Кресло Mist', price: 2799000, icon: '🪑', tag: '-20%', fav: true },
+        { id: 'bed_scandi', name: 'Кровать Scandi', price: 6499000, icon: '🛏', tag: '', fav: false },
+        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 999000, icon: '💡', tag: '', fav: false }
+    ];
+
+    let cart = {};
+
+    function render() {
+        const grid = document.getElementById('grid');
+        grid.innerHTML = '';
+        products.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'product-card';
+            div.onclick = () => addToCart(p.id, p.price);
+            div.innerHTML = `
+                <div class="product-img-box">
+                    ${p.tag ? `<div class="badge">${p.tag}</div>` : ''}
+                    <div class="fav-icon ${p.fav ? 'active' : ''}">❤️</div>
+                    ${p.icon}
+                </div>
+                <p class="p-name">${p.name}</p>
+                <p class="p-price">${p.price.toLocaleString()} сум</p>
+            `;
+            grid.appendChild(div);
+        });
+    }
+
+    function addToCart(id, price) {
+        cart[id] = (cart[id] || 0) + 1;
+        tg.HapticFeedback.impactOccurred('medium');
+        
+        let total = 0;
+        for(let k in cart) {
+            const p = products.find(prod => prod.id === k) || {price: 1899000}; 
+            total += p.price * cart[k];
+        }
+
+        tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
+        tg.MainButton.setParams({ color: '#1a1a1a' });
+        tg.MainButton.show();
+    }
+
+    tg.MainButton.onClick(() => {
+        const orderData = { products: cart, totalPrice: 0 };
+        for(let k in cart) {
+            const p = products.find(prod => prod.id === k) || {price: 1899000};
+            orderData.totalPrice += p.price * cart[k];
+        }
+        tg.sendData(JSON.stringify(orderData));
+    });
+
+    render();
+</script>
+</body>
+</html>
