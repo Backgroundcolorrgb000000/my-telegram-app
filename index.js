@@ -4,7 +4,7 @@ const bot = new Telegraf('8474220877:AAHmSXn0v-MRbWSZMAWGr16EYoPF1SXD3SQ');
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 
-// ВСТАВЬТЕ СВОЙ ID (вы его уже знаете, раз уведомления приходили)
+// Твой проверенный ID
 const ADMIN_ID = 1296940843; 
 
 bot.start((ctx) => {
@@ -30,7 +30,7 @@ bot.on('web_app_data', async (ctx) => {
                 name: data.customerName,
                 address: data.customerAddress,
                 items: data.products,
-                userId: ctx.from.id // Сохраняем ID пользователя для статусов
+                userId: ctx.from.id 
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
@@ -38,17 +38,15 @@ bot.on('web_app_data', async (ctx) => {
             start_parameter: 'mebel-order'
         });
     } catch (e) {
-        console.error(e);
+        console.error("Ошибка при создании счета:", e);
         ctx.reply('❌ Ошибка при формировании заказа');
     }
 });
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// ОБЯЗАТЕЛЬНО добавь слово async перед (ctx)
 bot.on('successful_payment', async (ctx) => { 
     try {
-        // Теперь await здесь будет работать корректно
         await ctx.reply('✅ Оплата получена! Скоро мы изменим статус вашего заказа.');
 
         const payment = ctx.message.successful_payment;
@@ -59,7 +57,7 @@ bot.on('successful_payment', async (ctx) => {
             if (count > 0) itemsList += `▫️ ${name}: ${count} шт.\n`;
         }
 
-        // Уведомление АДМИНУ
+        // Уведомление АДМИНУ (тебе в личку)
         await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!**\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList}`, {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -74,22 +72,12 @@ bot.on('successful_payment', async (ctx) => {
         console.error("Ошибка в successful_payment:", e);
     }
 });
-    // Уведомление АДМИНУ с кнопками
-    await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!**\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList}`, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-            inline_keyboard: [
-                [{ text: '🛠 В сборку', callback_data: `st_build_${orderInfo.userId}` }],
-                [{ text: '🚚 Курьеру', callback_data: `st_ship_${orderInfo.userId}` }],
-                [{ text: '✅ Завершить', callback_data: `st_done_${orderInfo.userId}` }]
-            ]
-        }
-    });
-});
 
 // ОБРАБОТКА КНОПОК СТАТУСА
 bot.on('callback_query', async (ctx) => {
-    const [prefix, action, targetId] = ctx.callbackQuery.data.split('_');
+    const data = ctx.callbackQuery.data;
+    const [prefix, action, targetId] = data.split('_');
+    
     if (prefix !== 'st') return;
 
     let text = '';
@@ -98,13 +86,22 @@ bot.on('callback_query', async (ctx) => {
     if (action === 'done') text = '✅ Заказ доставлен! Спасибо за покупку.';
 
     try {
+        // Отправляем статус клиенту
         await bot.telegram.sendMessage(targetId, text);
+        // Отвечаем на кнопку в Telegram (чтобы убрать значок загрузки)
         await ctx.answerCbQuery('Статус отправлен клиенту');
-        // Обновляем текст сообщения у админа, чтобы видеть текущий статус
-        await ctx.editMessageText(ctx.callbackQuery.message.text + `\n\nСтатус: ${text}`, { parse_mode: 'Markdown' });
+        // Обновляем сообщение у админа
+        await ctx.editMessageText(ctx.callbackQuery.message.text + `\n\n📢 **Текущий статус:** ${text}`, { parse_mode: 'Markdown' });
     } catch (e) {
-        await ctx.answerCbQuery('Ошибка: пользователь заблокировал бота');
+        console.error("Ошибка смены статуса:", e);
+        await ctx.answerCbQuery('Ошибка при отправке');
     }
 });
 
-bot.launch();
+bot.launch().then(() => {
+    console.log('Бот запущен и готов к работе!');
+});
+
+// Корректная остановка
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
