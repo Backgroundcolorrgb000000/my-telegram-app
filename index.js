@@ -38,14 +38,26 @@ async function saveOrderToSheets(rowData) {
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
-        // Исправляем ошибку [object Object] со Screenshot_2
         const rawData = ctx.webAppData.data;
-        data = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+
+        // Проверяем тип данных, чтобы не было ошибки [object Object]
+        if (typeof rawData === 'string') {
+            data = JSON.parse(rawData);
+        } else if (rawData && typeof rawData.text === 'function') {
+            data = JSON.parse(rawData.text());
+        } else {
+            data = rawData;
+        }
 
         console.log("Данные заказа получены:", data);
 
-        const totalAmount = Math.round(data.totalPrice || 0);
-        if (totalAmount <= 0) return ctx.reply('Ошибка: корзина пуста.');
+        // Извлекаем цену (учитываем возможные варианты названий из вашего JS)
+        const totalAmount = Math.round(data.totalPrice || data.total_price || 0);
+        
+        if (totalAmount <= 0) {
+            console.log("Корзина пуста или цена 0:", data);
+            return ctx.reply('Ошибка: корзина пуста.');
+        }
 
         await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят. Формирую счет...`);
 
@@ -55,7 +67,7 @@ bot.on('web_app_data', async (ctx) => {
             description: 'Ваш заказ из каталога',
             payload: JSON.stringify({
                 userId: ctx.from.id,
-                items: data.products
+                items: data.products || {}
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
@@ -64,7 +76,8 @@ bot.on('web_app_data', async (ctx) => {
         });
 
     } catch (e) {
-        console.error("Ошибка инвойса:", e.message);
+        console.error("Критическая ошибка при получении данных:", e.message);
+        ctx.reply("Произошла ошибка при обработке данных заказа.");
     }
 });
 
