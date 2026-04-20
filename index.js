@@ -1,11 +1,16 @@
 const { Telegraf } = require('telegraf');
 
-const bot = new Telegraf('8474220877:AAE264U782tz46lkIIycCW-fvSBcuBG-B6E');
+// Бот берет токен из переменных окружения. Если его там нет — выдаст ошибку.
+const token = process.env.BOT_TOKEN;
+if (!token) {
+    console.error("ОШИБКА: BOT_TOKEN не найден в переменных окружения!");
+    process.exit(1);
+}
+
+const bot = new Telegraf(token);
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
-
-// Твой проверенный ID
-const ADMIN_ID = 1296940843; 
+const ADMIN_ID = process.env.ADMIN_ID || 1296940843; 
 
 bot.start((ctx) => {
     ctx.reply('Магазин мебели в Ташкенте открыт!', {
@@ -38,8 +43,7 @@ bot.on('web_app_data', async (ctx) => {
             start_parameter: 'mebel-order'
         });
     } catch (e) {
-        console.error("Ошибка при создании счета:", e);
-        ctx.reply('❌ Ошибка при формировании заказа');
+        console.error("Ошибка счета:", e);
     }
 });
 
@@ -57,7 +61,7 @@ bot.on('successful_payment', async (ctx) => {
             if (count > 0) itemsList += `▫️ ${name}: ${count} шт.\n`;
         }
 
-        // Уведомление АДМИНУ (тебе в личку)
+        // Уведомление АДМИНУ
         await bot.telegram.sendMessage(ADMIN_ID, `🚀 **НОВЫЙ ЗАКАЗ!**\n\n👤 ${orderInfo.name}\n📍 ${orderInfo.address}\n💰 ${payment.total_amount / 100} сум\n🛒 Товары:\n${itemsList}`, {
             parse_mode: 'Markdown',
             reply_markup: {
@@ -69,15 +73,12 @@ bot.on('successful_payment', async (ctx) => {
             }
         });
     } catch (e) {
-        console.error("Ошибка в successful_payment:", e);
+        console.error("Ошибка в оплате:", e);
     }
 });
 
-// ОБРАБОТКА КНОПОК СТАТУСА
 bot.on('callback_query', async (ctx) => {
-    const data = ctx.callbackQuery.data;
-    const [prefix, action, targetId] = data.split('_');
-    
+    const [prefix, action, targetId] = ctx.callbackQuery.data.split('_');
     if (prefix !== 'st') return;
 
     let text = '';
@@ -86,22 +87,12 @@ bot.on('callback_query', async (ctx) => {
     if (action === 'done') text = '✅ Заказ доставлен! Спасибо за покупку.';
 
     try {
-        // Отправляем статус клиенту
         await bot.telegram.sendMessage(targetId, text);
-        // Отвечаем на кнопку в Telegram (чтобы убрать значок загрузки)
-        await ctx.answerCbQuery('Статус отправлен клиенту');
-        // Обновляем сообщение у админа
-        await ctx.editMessageText(ctx.callbackQuery.message.text + `\n\n📢 **Текущий статус:** ${text}`, { parse_mode: 'Markdown' });
+        await ctx.answerCbQuery('Статус изменен');
+        await ctx.editMessageText(ctx.callbackQuery.message.text + `\n\n📢 **Статус:** ${text}`, { parse_mode: 'Markdown' });
     } catch (e) {
-        console.error("Ошибка смены статуса:", e);
-        await ctx.answerCbQuery('Ошибка при отправке');
+        console.error("Ошибка статуса:", e);
     }
 });
 
-bot.launch().then(() => {
-    console.log('Бот запущен и готов к работе!');
-});
-
-// Корректная остановка
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+bot.launch().then(() => console.log('Бот запущен на новом токене!'));
