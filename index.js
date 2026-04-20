@@ -5,9 +5,14 @@ const { JWT } = require('google-auth-library');
 const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
 
+if (!token) {
+    console.error("ОШИБКА: BOT_TOKEN не найден!");
+    process.exit(1);
+}
+
 const bot = new Telegraf(token);
 
-// 1. ФУНКЦИЯ ЗАПИСИ
+// 1. ФУНКЦИЯ ЗАПИСИ В ТАБЛИЦУ
 async function saveOrderToSheets(rowData) {
     try {
         const serviceAccountAuth = new JWT({
@@ -19,62 +24,53 @@ async function saveOrderToSheets(rowData) {
         await doc.loadInfo();
         const sheet = doc.sheetsByIndex[0];
         await sheet.addRow(rowData);
+        console.log("✅ Записано в Sheets");
     } catch (e) {
-        console.error("Ошибка записи:", e.message);
-        throw e;
+        console.error("❌ Ошибка Sheets:", e.message);
     }
 }
 
-// 2. ОБРАБОТКА ДАННЫХ (ИСПРАВЛЕНО)
+// 2. ПРИЕМ ДАННЫХ (ИСПРАВЛЯЕТ [Функция: json])
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
-        const rawData = ctx.webAppData.data;
+        const raw = ctx.webAppData.data;
 
-        // ЛОГИКА ДЛЯ ИСПРАВЛЕНИЯ [Function: json]
-        // Если данные пришли в специальном формате Telegraf
-        if (rawData && typeof rawData.text === 'function') {
-            const textData = await rawData.text();
-            data = JSON.parse(textData);
-        } else if (typeof rawData === 'string') {
-            data = JSON.parse(rawData);
+        // Если это объект с функцией text(), вызываем её
+        if (raw && typeof raw.text === 'function') {
+            const rawText = await raw.text();
+            data = JSON.parse(rawText);
+        } else if (typeof raw === 'string') {
+            data = JSON.parse(raw);
         } else {
-            data = rawData;
+            data = raw;
         }
 
-        console.log("Данные успешно распакованы:", data);
+        console.log("Данные успешно извлечены:", data);
 
-        // Проверяем цену (используем ключи из вашего Mini App)
         const totalAmount = Math.round(data.totalPrice || 0);
-
-        if (totalAmount <= 0) {
-            console.error("Ошибка: сумма 0 или не найдена в", data);
-            return ctx.reply('Ошибка: не удалось определить стоимость товаров.');
-        }
+        if (totalAmount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
         await ctx.reply(`✅ Заказ на ${totalAmount.toLocaleString()} сум принят.`);
 
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
-            description: 'Ваш заказ из каталога',
-            payload: JSON.stringify({
-                userId: ctx.from.id,
-                items: data.products || {}
-            }),
+            description: 'Ваш заказ',
+            payload: JSON.stringify({ items: data.products || {} }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: totalAmount * 100 }],
             start_parameter: 'mebel-order'
         });
-
     } catch (e) {
-        console.error("Критическая ошибка парсинга:", e.message);
-        ctx.reply("Ошибка при обработке данных из корзины. Попробуйте еще раз.");
+        console.error("Ошибка парсинга:", e.message);
+        ctx.reply("Ошибка обработки корзины.");
     }
 });
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
+// 3. ПОСЛЕ ОПЛАТЫ
 bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
@@ -83,17 +79,22 @@ bot.on('successful_payment', async (ctx) => {
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name,
-            "Адрес": "Приложение", // Колонка С в таблице
+            "Адрес": "Приложение",
             "Сумма (сум)": payment.total_amount / 100,
             "Товары": JSON.stringify(payload.items),
             "ID пользователя": String(ctx.from.id)
         };
 
         await saveOrderToSheets(rowData);
-        await ctx.reply("🚀 Оплачено! Данные в таблице.");
+        await ctx.reply("🎉 Заказ сохранен в таблицу!");
     } catch (e) {
         console.error("Ошибка после оплаты:", e.message);
     }
 });
 
-bot.launch().catch(err => console.error("Ошибка запуска:", err));
+// Запуск с защитой от ошибок
+bot.launch().then(() => console.log('🚀 Бот запущен!'));
+
+// Обязательно для Railway, чтобы не было Conflict 409
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
