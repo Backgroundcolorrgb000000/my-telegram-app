@@ -7,90 +7,116 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --red: #ff5252; }
+        :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --red: #ff5252; --accent: #f9f9f9; }
         body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
-        .section-header { display: flex; justify-content: space-between; padding: 0 20px; margin-top: 20px; }
-        .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
         
-        /* Сетка товаров */
-        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
-        .product-card { background: #f9f9f9; border-radius: 20px; padding: 15px; text-align: center; position: relative; }
-        .product-img { font-size: 40px; margin-bottom: 10px; height: 80px; display: flex; align-items: center; justify-content: center; }
-        .p-name { font-size: 13px; margin: 5px 0; }
-        .p-price { font-size: 14px; font-weight: 600; }
+        /* Категории */
+        .categories { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
+        .cat-item { text-align: center; min-width: 70px; }
+        .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; }
+        .cat-item.active .cat-icon { border-color: #000; background: #fff; }
+        .cat-item p { font-size: 11px; margin: 0; }
 
-        /* Кнопка сердечка */
-        .fav-btn { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #ddd; cursor: pointer; transition: 0.2s; z-index: 10; }
+        .section-header { display: flex; justify-content: space-between; padding: 20px; }
+        .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
+
+        /* Сетка товаров */
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+        .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; }
+        .fav-btn { position: absolute; top: 12px; right: 12px; font-size: 20px; color: #e0e0e0; cursor: pointer; transition: 0.2s; }
         .fav-btn.active { color: var(--red); }
+        .product-img { font-size: 45px; margin: 10px 0; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; }
+        .p-price { font-size: 14px; font-weight: 600; }
 
         /* Навигация */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
-        .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; }
+        .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; transition: 0.2s; }
         .nav-item.active { color: #000; }
-        .nav-item div { font-size: 20px; }
+        .nav-item div { font-size: 22px; }
         .nav-item p { font-size: 10px; margin: 4px 0 0; }
 
-        /* Поиск и Страницы */
         .page { display: none; animation: fadeIn 0.3s; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        #search-input { width: calc(100% - 40px); margin: 20px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 16px; }
-
-        .btn-qty { border:none; background:#eee; border-radius:5px; width:25px; height:25px; cursor: pointer; }
+        #search-input { width: calc(100% - 40px); margin: 0 20px 20px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 16px; background: var(--accent); }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo">FORMA</div>
-        <div style="font-size: 20px;">👜</div>
+        <div style="display: flex; gap: 15px;">
+            <span onclick="nav('search')" style="cursor:pointer">🔍</span>
+            <span onclick="nav('cart')" style="cursor:pointer">👜</span>
+        </div>
     </header>
 
     <main id="main-content">
         <section id="home" class="page active">
+            <div class="section-header"><h2>Категории</h2></div>
+            <div class="categories">
+                <div class="cat-item active">
+                    <div class="cat-icon">🛋️</div>
+                    <p>Диваны</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🪑</div>
+                    <p>Кресла</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🛏️</div>
+                    <p>Кровати</p>
+                </div>
+                <div class="cat-item">
+                    <div class="cat-icon">🪞</div>
+                    <p>Зеркала</p>
+                </div>
+            </div>
+
             <div class="section-header"><h2>Популярное</h2></div>
             <div id="grid" class="products-grid"></div>
         </section>
 
         <section id="search" class="page">
             <div class="section-header"><h2>Поиск</h2></div>
-            <input type="text" id="search-input" placeholder="Поиск мебели...">
+            <input type="text" id="search-input" placeholder="Что вы ищете?">
             <div id="search-results" class="products-grid"></div>
         </section>
 
         <section id="favorites" class="page">
             <div class="section-header"><h2>Избранное</h2></div>
             <div id="fav-grid" class="products-grid"></div>
-            <div id="fav-empty" style="text-align: center; padding: 50px; color: var(--hint); display: none;">
-                <div style="font-size: 50px; margin-bottom: 10px;">❤️</div>
-                <p>Тут пока ничего нет</p>
+            <div id="fav-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">
+                <div style="font-size: 60px; margin-bottom: 20px;">❤️</div>
+                <p>Ваш список желаний пуст</p>
             </div>
         </section>
 
         <section id="cart" class="page">
             <div class="section-header"><h2>Корзина</h2></div>
-            <div id="cart-items" style="padding: 20px;"></div>
-            <div id="cart-empty" style="text-align: center; padding: 50px; color: var(--hint);">
-                <div style="font-size: 50px; margin-bottom: 10px;">🛒</div>
-                <p>Корзина пуста</p>
+            <div id="cart-items" style="padding: 0 20px;"></div>
+            <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">
+                <div style="font-size: 60px; margin-bottom: 20px;">🛒</div>
+                <p>В корзине пока ничего нет</p>
             </div>
         </section>
 
         <section id="profile" class="page" style="text-align: center; padding-top: 40px;">
-            <div style="width: 80px; height: 80px; background: #eee; border-radius: 50%; margin: 0 auto 15px; font-size: 40px; display: flex; align-items: center; justify-content: center;">👤</div>
+            <div style="width: 100px; height: 100px; background: var(--accent); border-radius: 50%; margin: 0 auto 20px; font-size: 50px; display: flex; align-items: center; justify-content: center;">👤</div>
             <h2 id="u-name">Клиент</h2>
             <p id="u-id" style="color: var(--hint);">ID: ---</p>
         </section>
     </main>
 
     <nav class="nav-bar">
-        <div class="nav-item active" onclick="nav('home')"><div>🏠</div><p>Главная</p></div>
-        <div class="nav-item" onclick="nav('search')"><div>🔍</div><p>Поиск</p></div>
-        <div class="nav-item" onclick="nav('favorites')"><div>❤️</div><p>Лайки</p></div>
-        <div class="nav-item" onclick="nav('cart')"><div>🛒</div><p>Корзина</p></div>
-        <div class="nav-item" onclick="nav('profile')"><div>👤</div><p>Профиль</p></div>
+        <div class="nav-item active" onclick="nav('home', this)"><div>🏠</div><p>Главная</p></div>
+        <div class="nav-item" onclick="nav('search', this)"><div>🔍</div><p>Поиск</p></div>
+        <div class="nav-item" onclick="nav('favorites', this)"><div>❤️</div><p>Лайки</p></div>
+        <div class="nav-item" onclick="nav('cart', this)"><div>🛒</div><p>Корзина</p></div>
+        <div class="nav-item" onclick="nav('profile', this)"><div>👤</div><p>Профиль</p></div>
     </nav>
 
 <script>
@@ -106,14 +132,14 @@
     ];
 
     let cart = {};
-    let favorites = {}; // Храним избранное
+    let favorites = {}; // Изначально пусто!
 
-    function nav(pageId) {
+    function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         
         document.getElementById(pageId).classList.add('active');
-        event.currentTarget.classList.add('active');
+        if(el) el.classList.add('active');
 
         if(pageId === 'profile' && tg.initDataUnsafe.user) {
             document.getElementById('u-name').innerText = tg.initDataUnsafe.user.first_name;
@@ -121,13 +147,20 @@
         }
         if(pageId === 'cart') renderCart();
         if(pageId === 'favorites') renderFavs();
+        if(pageId === 'home') render('grid', products);
     }
 
     function toggleFav(e, id) {
-        e.stopPropagation(); // Чтобы не срабатывал клик по карточке (добавление в корзину)
+        e.stopPropagation();
         favorites[id] = !favorites[id];
         tg.HapticFeedback.impactOccurred('medium');
-        render('grid', products); // Перерисовываем главную, чтобы обновить сердечки
+        
+        // Перерисовываем ту страницу, на которой находимся
+        if (document.getElementById('favorites').classList.contains('active')) {
+            renderFavs();
+        } else {
+            render('grid', products);
+        }
     }
 
     function render(containerId, items) {
@@ -135,14 +168,16 @@
         if(!container) return;
         container.innerHTML = '';
         items.forEach(p => {
+            const isFav = favorites[p.id] === true;
             const div = document.createElement('div');
             div.className = 'product-card';
-            div.onclick = () => addToCart(p);
             div.innerHTML = `
-                <div class="fav-btn ${favorites[p.id] ? 'active' : ''}" onclick="toggleFav(event, '${p.id}')">❤️</div>
-                <div class="product-img">${p.icon}</div>
-                <div class="p-name">${p.name}</div>
-                <div class="p-price">${p.price.toLocaleString()} сум</div>
+                <div class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFav(event, '${p.id}')">❤️</div>
+                <div onclick="addToCart('${p.id}')">
+                    <div class="product-img">${p.icon}</div>
+                    <div class="p-name">${p.name}</div>
+                    <div class="p-price">${p.price.toLocaleString()} сум</div>
+                </div>
             `;
             container.appendChild(div);
         });
@@ -162,6 +197,12 @@
         }
     }
 
+    function addToCart(id) {
+        cart[id] = (cart[id] || 0) + 1;
+        tg.HapticFeedback.notificationOccurred('success');
+        updateMainButton();
+    }
+
     function renderCart() {
         const container = document.getElementById('cart-items');
         const emptyMsg = document.getElementById('cart-empty');
@@ -173,7 +214,7 @@
                 hasItems = true;
                 const p = products.find(prod => prod.id === id);
                 const itemDiv = document.createElement('div');
-                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 15px; margin-bottom: 10px;";
+                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: var(--accent); padding: 15px; border-radius: 20px; margin-bottom: 10px;";
                 itemDiv.innerHTML = `
                     <div style="font-size: 24px; margin-right: 15px;">${p.icon}</div>
                     <div style="flex-grow: 1;">
@@ -181,21 +222,15 @@
                         <div style="font-size: 12px; color: var(--hint);">${p.price.toLocaleString()} сум</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <button class="btn-qty" onclick="changeQty('${id}', -1)">-</button>
+                        <button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button>
                         <span>${cart[id]}</span>
-                        <button class="btn-qty" onclick="changeQty('${id}', 1)">+</button>
+                        <button onclick="changeQty('${id}', 1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">+</button>
                     </div>
                 `;
                 container.appendChild(itemDiv);
             }
         }
         emptyMsg.style.display = hasItems ? 'none' : 'block';
-        updateMainButton();
-    }
-
-    function addToCart(p) {
-        cart[p.id] = (cart[p.id] || 0) + 1;
-        tg.HapticFeedback.notificationOccurred('success');
         updateMainButton();
     }
 
@@ -212,7 +247,7 @@
             total += p.price * cart[id];
         }
         if (total > 0) {
-            tg.MainButton.setText(`Купить: ${total.toLocaleString()} сум`);
+            tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
             tg.MainButton.show();
         } else {
             tg.MainButton.hide();
