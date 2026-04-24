@@ -89,6 +89,7 @@
     <nav class="nav-bar">
         <div class="nav-item active" onclick="nav('home')"><div>🏠</div><p>Главная</p></div>
         <div class="nav-item" onclick="nav('search')"><div>🔍</div><p>Поиск</p></div>
+        <div class="nav-item" onclick="nav('cart')"><div>🛒</div><p>Корзина</p></div>
         <div class="nav-item" onclick="nav('profile')"><div>👤</div><p>Профиль</p></div>
     </nav>
 
@@ -111,12 +112,14 @@
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         
         document.getElementById(pageId).classList.add('active');
+        // Добавляем активный класс кнопке
         event.currentTarget.classList.add('active');
 
         if(pageId === 'profile' && tg.initDataUnsafe.user) {
             document.getElementById('u-name').innerText = tg.initDataUnsafe.user.first_name;
             document.getElementById('u-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
         }
+        if(pageId === 'cart') renderCart();
     }
 
     function render(containerId, items) {
@@ -141,34 +144,72 @@
         updateMainButton();
     }
 
+    // НОВАЯ ФУНКЦИЯ: Отрисовка корзины
+    function renderCart() {
+        const container = document.getElementById('cart-items');
+        const emptyMsg = document.getElementById('cart-empty');
+        container.innerHTML = '';
+        
+        let hasItems = false;
+        for (let id in cart) {
+            if (cart[id] > 0) {
+                hasItems = true;
+                const p = products.find(prod => prod.id === id);
+                const itemDiv = document.createElement('div');
+                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 15px; margin-bottom: 10px;";
+                itemDiv.innerHTML = `
+                    <div style="font-size: 24px; margin-right: 15px;">${p.icon}</div>
+                    <div style="flex-grow: 1;">
+                        <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
+                        <div style="font-size: 12px; color: var(--hint);">${p.price.toLocaleString()} сум</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button onclick="changeQty('${id}', -1)" style="border:none; background:#eee; border-radius:5px; width:25px; height:25px;">-</button>
+                        <span>${cart[id]}</span>
+                        <button onclick="changeQty('${id}', 1)" style="border:none; background:#eee; border-radius:5px; width:25px; height:25px;">+</button>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            }
+        }
+        emptyMsg.style.display = hasItems ? 'none' : 'block';
+        updateMainButton();
+    }
+
+    function changeQty(id, delta) {
+        cart[id] = (cart[id] || 0) + delta;
+        if (cart[id] < 0) cart[id] = 0;
+        renderCart();
+    }
+
     function updateMainButton() {
         let total = 0;
         for (let id in cart) {
             const p = products.find(prod => prod.id === id);
-            total += p.price * cart[id];
+            if (p) total += p.price * cart[id];
         }
         if (total > 0) {
             tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
             tg.MainButton.show();
+        } else {
+            tg.MainButton.hide();
         }
     }
 
     tg.MainButton.onClick(() => {
         let total = 0;
+        let finalCart = {};
         for (let id in cart) {
-            const p = products.find(prod => prod.id === id);
-            total += p.price * cart[id];
+            if (cart[id] > 0) {
+                const p = products.find(prod => prod.id === id);
+                total += p.price * cart[id];
+                finalCart[id] = cart[id];
+            }
         }
-        tg.sendData(JSON.stringify({ products: cart, totalPrice: total }));
+        tg.sendData(JSON.stringify({ products: finalCart, totalPrice: total }));
     });
 
-    // Поиск
-    document.getElementById('search-input').oninput = (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-        render('search-results', filtered);
-    };
-
+    // Инициализация
     render('grid', products);
 </script>
 </body>
