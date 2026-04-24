@@ -11,18 +11,13 @@
         body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
-        
-        /* Категории */
         .categories { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
         .cat-item { text-align: center; min-width: 70px; }
         .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; }
         .cat-item.active .cat-icon { border-color: #000; background: #fff; }
         .cat-item p { font-size: 11px; margin: 0; }
-
         .section-header { display: flex; justify-content: space-between; padding: 20px; }
         .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
-
-        /* Сетка товаров */
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
         .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; }
         .fav-btn { position: absolute; top: 12px; right: 12px; font-size: 20px; color: #e0e0e0; cursor: pointer; transition: 0.2s; }
@@ -30,14 +25,11 @@
         .product-img { font-size: 45px; margin: 10px 0; height: 80px; display: flex; align-items: center; justify-content: center; }
         .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; }
         .p-price { font-size: 14px; font-weight: 600; }
-
-        /* Навигация */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
         .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; transition: 0.2s; }
         .nav-item.active { color: #000; }
         .nav-item div { font-size: 22px; }
         .nav-item p { font-size: 10px; margin: 4px 0 0; }
-
         .page { display: none; animation: fadeIn 0.3s; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -58,24 +50,11 @@
         <section id="home" class="page active">
             <div class="section-header"><h2>Категории</h2></div>
             <div class="categories">
-                <div class="cat-item active">
-                    <div class="cat-icon">🛋️</div>
-                    <p>Диваны</p>
-                </div>
-                <div class="cat-item">
-                    <div class="cat-icon">🪑</div>
-                    <p>Кресла</p>
-                </div>
-                <div class="cat-item">
-                    <div class="cat-icon">🛏️</div>
-                    <p>Кровати</p>
-                </div>
-                <div class="cat-item">
-                    <div class="cat-icon">🪞</div>
-                    <p>Зеркала</p>
-                </div>
+                <div class="cat-item active"><div class="cat-icon">🛋️</div><p>Диваны</p></div>
+                <div class="cat-item"><div class="cat-icon">🪑</div><p>Кресла</p></div>
+                <div class="cat-item"><div class="cat-icon">🛏️</div><p>Кровати</p></div>
+                <div class="cat-item"><div class="cat-icon">🪞</div><p>Зеркала</p></div>
             </div>
-
             <div class="section-header"><h2>Популярное</h2></div>
             <div id="grid" class="products-grid"></div>
         </section>
@@ -131,159 +110,7 @@
         { id: 'mirror_arch', name: 'Зеркало Arch', price: 1899000, icon: '🪞' }
     ];
 
-    // Загружаем лайки и СРАЗУ чистим их от мусора
-    let rawFavs = JSON.parse(localStorage.getItem('forma_favs')) || {};
+    // ОЧИСТКА ИНИЦИАЛИЗАЦИИ ФАВОРИТОВ
     let favorites = {};
-    // Переносим только реальные "true" значения
-    Object.keys(rawFavs).forEach(key => {
-        if (rawFavs[key] === true) favorites[key] = true;
-    });
-
-    let cart = {};
-
-    function nav(pageId, el) {
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        
-        const targetPage = document.getElementById(pageId);
-        if (targetPage) targetPage.classList.add('active');
-        if (el) el.classList.add('active');
-
-        if(pageId === 'profile' && tg.initDataUnsafe.user) {
-            document.getElementById('u-name').innerText = tg.initDataUnsafe.user.first_name;
-            document.getElementById('u-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
-        }
-        if(pageId === 'cart') renderCart();
-        if(pageId === 'favorites') renderFavs();
-        if(pageId === 'home') render('grid', products);
-    }
-
-    function toggleFav(e, id) {
-        e.stopPropagation();
-        if (favorites[id]) {
-            delete favorites[id]; // Полностью удаляем ключ, если лайк снят
-        } else {
-            favorites[id] = true;
-        }
-        
-        localStorage.setItem('forma_favs', JSON.stringify(favorites));
-        tg.HapticFeedback.impactOccurred('medium');
-        
-        // Обновляем текущий экран
-        if (document.getElementById('favorites').classList.contains('active')) {
-            renderFavs();
-        } else {
-            render('grid', products);
-        }
-    }
-
-    function render(containerId, items) {
-        const container = document.getElementById(containerId);
-        if(!container) return;
-        container.innerHTML = '';
-        items.forEach(p => {
-            const isFav = favorites[p.id] === true;
-            const div = document.createElement('div');
-            div.className = 'product-card';
-            div.innerHTML = `
-                <div class="fav-btn ${isFav ? 'active' : ''}" onclick="toggleFav(event, '${p.id}')">❤️</div>
-                <div onclick="addToCart('${p.id}')">
-                    <div class="product-img">${p.icon}</div>
-                    <div class="p-name">${p.name}</div>
-                    <div class="p-price">${p.price.toLocaleString()} сум</div>
-                </div>
-            `;
-            container.appendChild(div);
-        });
-    }
-
-  function renderFavs() {
-    // Фильтруем товары: только те, что есть в списке favorites со значением true
-    const favItems = products.filter(p => favorites[p.id] === true);
-    const container = document.getElementById('fav-grid');
-    const emptyMsg = document.getElementById('fav-empty');
-    
-    // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: 
-    // Если в favorites есть ID, которого нет в массиве products, удаляем его
-    Object.keys(favorites).forEach(id => {
-        if (!products.find(p => p.id === id)) {
-            delete favorites[id];
-        }
-    });
-    localStorage.setItem('forma_favs', JSON.stringify(favorites));
-
-    container.innerHTML = '';
-    if(favItems.length > 0) {
-        render('fav-grid', favItems); // Рисуем карточки
-        if(emptyMsg) emptyMsg.style.display = 'none';
-    } else {
-        if(emptyMsg) emptyMsg.style.display = 'block';
-    }
-}
-
-    function addToCart(id) {
-        cart[id] = (cart[id] || 0) + 1;
-        tg.HapticFeedback.notificationOccurred('success');
-        updateMainButton();
-    }
-
-    function renderCart() {
-        const container = document.getElementById('cart-items');
-        const emptyMsg = document.getElementById('cart-empty');
-        container.innerHTML = '';
-        let hasItems = false;
-        for (let id in cart) {
-            if (cart[id] > 0) {
-                hasItems = true;
-                const p = products.find(prod => prod.id === id);
-                if (!p) continue;
-                const itemDiv = document.createElement('div');
-                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
-                itemDiv.innerHTML = `
-                    <div style="font-size: 24px; margin-right: 15px;">${p.icon}</div>
-                    <div style="flex-grow: 1;">
-                        <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
-                        <div style="font-size: 12px; color: var(--hint);">${p.price.toLocaleString()} сум</div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button>
-                        <span>${cart[id]}</span>
-                        <button onclick="changeQty('${id}', 1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">+</button>
-                    </div>
-                `;
-                container.appendChild(itemDiv);
-            }
-        }
-        emptyMsg.style.display = hasItems ? 'none' : 'block';
-        updateMainButton();
-    }
-
-    function changeQty(id, delta) {
-        cart[id] = (cart[id] || 0) + delta;
-        if (cart[id] < 0) cart[id] = 0;
-        renderCart();
-    }
-
-    function updateMainButton() {
-        let total = 0;
-        for (let id in cart) {
-            const p = products.find(prod => prod.id === id);
-            if(p) total += p.price * cart[id];
-        }
-        if (total > 0) {
-            tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
-            tg.MainButton.show();
-        } else {
-            tg.MainButton.hide();
-        }
-    }
-
-    tg.MainButton.onClick(() => {
-        tg.sendData(JSON.stringify({ products: cart }));
-    });
-
-    // Инициализация при первом запуске
-    render('grid', products);
-</script>
-</body>
-</html>
+    try {
+        const saved = JSON.parse(
