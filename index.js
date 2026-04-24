@@ -58,14 +58,12 @@ bot.on('web_app_data', async (ctx) => {
 
         await ctx.replyWithInvoice({
             title: 'Мебель FORMA',
-            description: 'Ваш заказ',
-            payload: JSON.stringify({ order_items: data.products }),
+            description: 'Оплата заказа через Smart Glocal',
+            payload: JSON.stringify({ items: data.products }), // Ключ 'items' должен совпадать в обоих блоках
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: amount * 100 }],
-            start_parameter: 'mebel-order',
-            need_phone_number: true,
-            send_phone_number_to_provider: true
+            start_parameter: 'order-smart-glocal'
         });
         
     } catch (e) {
@@ -83,26 +81,26 @@ bot.on('pre_checkout_query', (ctx) => {
 // УСПЕШНАЯ ОПЛАТА
 bot.on('successful_payment', async (ctx) => {
     try {
-        const payment = ctx.message.successful_payment;
-        const payload = JSON.parse(payment.invoice_payload);
+        const payload = JSON.parse(ctx.message.successful_payment.invoice_payload);
         
-        const itemsStr = Object.entries(payload.order_items || {})
+        // Достаем данные именно по ключу 'items'
+        const itemsStr = Object.entries(payload.items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name,
-            "Адрес": "Заказ CLICK",
-            "Сумма (сум)": payment.total_amount / 100,
-            "Товары": itemsStr,
+            "Адрес": "Тестовый заказ (Smart Glocal)",
+            "Сумма (сум)": ctx.message.successful_payment.total_amount / 100,
+            "Товары": itemsStr || "Мебель",
             "ID пользователя": String(ctx.from.id)
         };
 
         await saveOrderToSheets(rowData);
-        await ctx.reply("🎉 Оплата прошла успешно! Спасибо за заказ.");
+        await ctx.reply("✨ УРА! Оплата через Smart Glocal прошла. Проверьте таблицу!");
     } catch (e) {
-        console.error("❌ Ошибка после оплаты:", e.message);
+        console.error("Ошибка после оплаты:", e.message);
     }
 });
 
