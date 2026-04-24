@@ -131,16 +131,23 @@
         { id: 'mirror_arch', name: 'Зеркало Arch', price: 1899000, icon: '🪞' }
     ];
 
-    // Пытаемся загрузить лайки из памяти браузера или создаем пустой объект
-    let favorites = JSON.parse(localStorage.getItem('forma_favs')) || {};
+    // Загружаем лайки и СРАЗУ чистим их от мусора
+    let rawFavs = JSON.parse(localStorage.getItem('forma_favs')) || {};
+    let favorites = {};
+    // Переносим только реальные "true" значения
+    Object.keys(rawFavs).forEach(key => {
+        if (rawFavs[key] === true) favorites[key] = true;
+    });
+
     let cart = {};
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
         
-        document.getElementById(pageId).classList.add('active');
-        if(el) el.classList.add('active');
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) targetPage.classList.add('active');
+        if (el) el.classList.add('active');
 
         if(pageId === 'profile' && tg.initDataUnsafe.user) {
             document.getElementById('u-name').innerText = tg.initDataUnsafe.user.first_name;
@@ -153,21 +160,20 @@
 
     function toggleFav(e, id) {
         e.stopPropagation();
-        // Переключаем состояние: если было true, станет false, и наоборот
-        favorites[id] = !favorites[id];
+        if (favorites[id]) {
+            delete favorites[id]; // Полностью удаляем ключ, если лайк снят
+        } else {
+            favorites[id] = true;
+        }
         
-        // Сохраняем в память, чтобы после перезагрузки лайки остались
         localStorage.setItem('forma_favs', JSON.stringify(favorites));
-        
         tg.HapticFeedback.impactOccurred('medium');
         
-        // Определяем, какую страницу обновить
+        // Обновляем текущий экран
         if (document.getElementById('favorites').classList.contains('active')) {
             renderFavs();
-        } else if (document.getElementById('home').classList.contains('active')) {
-            render('grid', products);
         } else {
-            render('search-results', products.filter(p => p.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase())));
+            render('grid', products);
         }
     }
 
@@ -176,7 +182,6 @@
         if(!container) return;
         container.innerHTML = '';
         items.forEach(p => {
-            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем, что значение именно true
             const isFav = favorites[p.id] === true;
             const div = document.createElement('div');
             div.className = 'product-card';
@@ -193,7 +198,6 @@
     }
 
     function renderFavs() {
-        // Фильтруем товары, у которых в объекте favorites стоит true
         const favItems = products.filter(p => favorites[p.id] === true);
         const container = document.getElementById('fav-grid');
         const emptyMsg = document.getElementById('fav-empty');
@@ -207,7 +211,6 @@
         }
     }
 
-    // ... остальной код (addToCart, renderCart, changeQty, updateMainButton) оставить без изменений или скопировать из прошлого сообщения
     function addToCart(id) {
         cart[id] = (cart[id] || 0) + 1;
         tg.HapticFeedback.notificationOccurred('success');
@@ -223,6 +226,7 @@
             if (cart[id] > 0) {
                 hasItems = true;
                 const p = products.find(prod => prod.id === id);
+                if (!p) continue;
                 const itemDiv = document.createElement('div');
                 itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
                 itemDiv.innerHTML = `
@@ -268,7 +272,7 @@
         tg.sendData(JSON.stringify({ products: cart }));
     });
 
-    // Инициализация
+    // Инициализация при первом запуске
     render('grid', products);
 </script>
 </body>
