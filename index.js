@@ -2,14 +2,20 @@ const { Telegraf, Markup } = require('telegraf');
 const { GoogleSpreadsheet } = require('google-spreadsheet');
 const { JWT } = require('google-auth-library');
 
-// 1. НАСТРОЙКИ (Проверьте эти переменные в Railway!)
+// 1. НАСТРОЙКИ
 const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = '1877036958:TEST:9bbcd79d1d9428bc0546e57e5bd0a86fb4eaa2a9';
-const WEB_APP_URL = 'ВАША_ССЫЛКА_НА_APP'; // Вставьте сюда ссылку на ваш каталог
+// ВСТАВЬТЕ ВАШУ ССЫЛКУ НИЖЕ
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
+
+if (!token) {
+    console.error("ОШИБКА: BOT_TOKEN не найден в Railway!");
+    process.exit(1);
+}
 
 const bot = new Telegraf(token);
 
-// 2. ФУНКЦИЯ ЗАПИСИ (Исправляет ошибку со Screenshot_11)
+// 2. ФУНКЦИЯ ЗАПИСИ
 async function saveOrderToSheets(rowData) {
     try {
         const serviceAccountAuth = new JWT({
@@ -17,21 +23,22 @@ async function saveOrderToSheets(rowData) {
             key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
             scopes: ['https://www.googleapis.com/auth/spreadsheets'],
         });
+
         const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
         await doc.loadInfo();
         const sheet = doc.sheetsByIndex[0];
         await sheet.addRow(rowData);
-        console.log("✅ Данные записаны в Google Таблицу");
+        console.log("✅ Данные в таблице!");
     } catch (e) {
-        console.error("❌ Ошибка Google Sheets:", e.message);
+        console.error("❌ Ошибка записи:", e.message);
     }
 }
 
-// 3. КОМАНДА СТАРТ (ВОЗВРАЩАЕТ КНОПКУ)
+// 3. КОМАНДА СТАРТ (ОТРИСОВКА КНОПКИ)
 bot.start((ctx) => {
-    ctx.reply('Добро пожаловать в магазин мебели FORMA! Нажмите кнопку ниже, чтобы открыть каталог.', 
+    ctx.reply('Добро пожаловать в FORMA! Нажмите на кнопку ниже, чтобы заказать мебель.', 
         Markup.keyboard([
-            [Markup.button.webApp('🛒 Открыть каталог', WEB_APP_URL)]
+            [Markup.button.webApp('🛒 Открыть каталог', webAppUrl)]
         ]).resize()
     );
 });
@@ -42,9 +49,10 @@ bot.on('web_app_data', async (ctx) => {
         let data;
         const raw = ctx.webAppData.data;
 
-        // Исправляем [Функция: text] со Screenshot_8
+        // Распаковываем функции json/text (исправление для Screenshot_8)
         if (raw && typeof raw.text === 'function') {
-            data = JSON.parse(await raw.text());
+            const text = await raw.text();
+            data = JSON.parse(text);
         } else {
             data = typeof raw === 'string' ? JSON.parse(raw) : raw;
         }
@@ -54,6 +62,8 @@ bot.on('web_app_data', async (ctx) => {
 
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
+        await ctx.reply(`✅ Заказ на ${amount.toLocaleString()} сум принят.`);
+
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
             description: 'Ваш заказ из каталога',
@@ -61,40 +71,43 @@ bot.on('web_app_data', async (ctx) => {
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: amount * 100 }],
-            start_parameter: 'mebel-order'
+            start_parameter: 'order'
         });
     } catch (e) {
-        console.error("Ошибка счета:", e.message);
+        console.error("Ошибка выставления счета:", e.message);
     }
 });
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// 5. УСПЕШНАЯ ОПЛАТА
+// 5. ПОСЛЕ ОПЛАТЫ
 bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const payload = JSON.parse(payment.invoice_payload);
         
-        const itemsString = Object.entries(payload.items || {})
+        const itemsStr = Object.entries(payload.items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
-        // СТРОГО под вашу таблицу на Screenshot_14
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
-            "Адрес": "Заказ из приложения", // Колонка C
-            "Сумма (сум)": payment.total_amount / 100, // Колонка D
-            "Товары": itemsString || "Мебель", // Колонка E
-            "ID пользователя": String(ctx.from.id) // Колонка F
+            "Адрес": "Заказ из приложения",
+            "Сумма (сум)": payment.total_amount / 100,
+            "Товары": itemsStr,
+            "ID пользователя": String(ctx.from.id)
         };
 
         await saveOrderToSheets(rowData);
-        await ctx.reply("🎉 Оплата прошла! Мы скоро свяжемся с вами.");
-    } catch (error) {
-        console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", error.message);
+        await ctx.reply("🎉 Оплата принята! Данные в таблице.");
+    } catch (e) {
+        console.error("Ошибка успешной оплаты:", e.message);
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот успешно запущен!'));
+// ЗАПУСК
+bot.launch().then(() => console.log('🚀 Бот запущен с НОВЫМ токеном!'));
+
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
