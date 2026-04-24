@@ -43,53 +43,42 @@ bot.start((ctx) => {
     );
 });
 
-// ... (начало кода без изменений)
 
 // 4. ПРИЕМ ДАННЫХ ИЗ КАТАЛОГА
 bot.on('web_app_data', async (ctx) => {
     try {
-        let data;
-        const raw = ctx.webAppData.data;
-
-        // Корректная распаковка
-        if (typeof raw === 'string') {
-            data = JSON.parse(raw);
-        } else if (raw && typeof raw.text === 'function') {
-            data = JSON.parse(await raw.text());
-        } else {
-            data = raw;
-        }
-
-        console.log("Данные заказа:", data);
+        let data = JSON.parse(ctx.webAppData.data);
         const amount = Math.round(data.totalPrice || 0);
 
-        if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
+        if (amount <= 0) return ctx.reply('Корзина пуста.');
 
-        // Отправляем счет
+        // Выставляем счет через CLICK
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
-            description: 'Ваш заказ из каталога',
-            payload: JSON.stringify({ order_items: data.products || {} }), // Используем уникальный ключ
-            provider_token: PAYMENT_TOKEN,
+            description: 'Заказ через CLICK',
+            payload: JSON.stringify({ order_items: data.products || {} }),
+            provider_token: PAYMENT_TOKEN, // Ваш новый токен CLICK
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: amount * 100 }],
-            start_parameter: 'order'
+            start_parameter: 'click-order',
+            // Дополнительные данные, которые любит CLICK:
+            need_phone_number: true, 
+            send_phone_number_to_provider: true 
         });
     } catch (e) {
-        console.error("Ошибка счета:", e.message);
+        console.error("Ошибка CLICK Invoice:", e.message);
     }
 });
 
-// ОБЯЗАТЕЛЬНО: Подтверждение перед оплатой
+// ОБЯЗАТЕЛЬНОЕ подтверждение (обработчик тот же)
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// 5. ПОСЛЕ ОПЛАТЫ
+// 5. ПОСЛЕ ОПЛАТЫ (Блок записи в таблицу остается без изменений)
 bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const payload = JSON.parse(payment.invoice_payload);
         
-        // Синхронизируем ключ с тем, что отправили в payload (order_items)
         const itemsStr = Object.entries(payload.order_items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
@@ -97,19 +86,18 @@ bot.on('successful_payment', async (ctx) => {
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
-            "Адрес": "Заказ из приложения",
+            "Адрес": "Заказ через CLICK",
             "Сумма (сум)": payment.total_amount / 100,
-            "Товары": itemsStr || "Товары",
+            "Товары": itemsStr,
             "ID пользователя": String(ctx.from.id)
         };
 
         await saveOrderToSheets(rowData);
-        await ctx.reply("🎉 Оплата принята! Мы уже начали собирать ваш заказ.");
+        await ctx.reply("🎉 Оплата через CLICK принята! Данные уже в таблице.");
     } catch (e) {
-        console.error("Ошибка после оплаты:", e.message);
+        console.error("Ошибка записи CLICK:", e.message);
     }
 });
-
 // ... (запуск бота)
 bot.launch().then(() => console.log('🚀 Бот запущен с НОВЫМ токеном!'));
 
