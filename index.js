@@ -104,15 +104,16 @@ bot.on('successful_payment', async (ctx) => {
         // 3. НОВОЕ: Уведомление администратору (Вам)
         if (ADMIN_ID) {
             const username = ctx.from.username ? `(@${ctx.from.username})` : '';
+            // Используем HTML теги <b> вместо звездочек
             const adminMessage = `
-💰 **НОВЫЙ ЗАКАЗ ОПЛАЧЕН!**
-👤 **Клиент:** ${ctx.from.first_name} ${username}
-📦 **Товары:** ${itemsStr}
-💵 **Сумма:** ${(ctx.message.successful_payment.total_amount / 100).toLocaleString('ru-RU')} сум
-📅 **Дата:** ${rowData["Дата"]}
+💰 <b>НОВЫЙ ЗАКАЗ ОПЛАЧЕН!</b>
+👤 <b>Клиент:</b> ${ctx.from.first_name} ${username}
+📦 <b>Товары:</b> ${itemsStr}
+💵 <b>Сумма:</b> ${(ctx.message.successful_payment.total_amount / 100).toLocaleString('ru-RU')} сум
+📅 <b>Дата:</b> ${rowData["Дата"]}
             `;
-            // Отправляем сообщение напрямую по вашему ID
-            await bot.telegram.sendMessage(ADMIN_ID, adminMessage, { parse_mode: 'Markdown' });
+            // Меняем parse_mode на 'HTML'
+            await bot.telegram.sendMessage(ADMIN_ID, adminMessage, { parse_mode: 'HTML' });
             console.log("✅ Уведомление админу отправлено");
         }
 
