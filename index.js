@@ -35,29 +35,42 @@ bot.start((ctx) => {
 bot.on('web_app_data', async (ctx) => {
     try {
         console.log("📥 Получены сырые данные:", ctx.webAppData.data);
-        const data = JSON.parse(ctx.webAppData.data);
+        
+        let data;
+        const raw = ctx.webAppData.data;
+
+        // ИСПРАВЛЕНИЕ: Проверяем, являются ли данные объектом с функциями (как на скрине 10)
+        if (raw && typeof raw.text === 'function') {
+            const textData = await raw.text();
+            data = JSON.parse(textData);
+        } else if (typeof raw === 'string') {
+            data = JSON.parse(raw);
+        } else {
+            data = raw;
+        }
+
+        console.log("✅ Распознанные данные:", data);
         
         const amount = Math.round(data.totalPrice || 0);
-        if (amount <= 0) return ctx.reply('Ошибка: корзина пуста или цена не передана.');
+        if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
-        console.log(`💳 Попытка выставить счет на ${amount} UZS через CLICK...`);
+        console.log(`💳 Выставляю счет CLICK на ${amount} UZS...`);
 
         await ctx.replyWithInvoice({
             title: 'Мебель FORMA',
-            description: 'Оплата заказа из каталога',
+            description: 'Ваш заказ',
             payload: JSON.stringify({ order_items: data.products }),
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: amount * 100 }],
             start_parameter: 'mebel-order',
-            need_phone_number: true, // Полезно для CLICK
+            need_phone_number: true,
             send_phone_number_to_provider: true
         });
         
-        console.log("🚀 Счет успешно отправлен в чат!");
     } catch (e) {
-        console.error("❌ ОШИБКА ОТПРАВКИ СЧЕТА:", e.message);
-        ctx.reply("Ошибка при формировании счета. Проверьте логи сервера.");
+        console.error("❌ ОШИБКА:", e.message);
+        ctx.reply("Ошибка при обработке заказа. Мы уже чиним её!");
     }
 });
 
