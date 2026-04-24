@@ -4,7 +4,7 @@ const { JWT } = require('google-auth-library');
 
 const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
-const ADMIN_ID = process.env.ADMIN_ID; // НОВОЕ: Переменная для вашего ID
+const ADMIN_ID = process.env.ADMIN_ID; 
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 
 const bot = new Telegraf(token);
@@ -31,14 +31,10 @@ bot.start((ctx) => {
     );
 });
 
-// ПРИЕМ ДАННЫХ
 bot.on('web_app_data', async (ctx) => {
     try {
-        console.log("📥 Получены сырые данные:", ctx.webAppData.data);
-        
         let data;
         const raw = ctx.webAppData.data;
-
         if (raw && typeof raw.text === 'function') {
             const textData = await raw.text();
             data = JSON.parse(textData);
@@ -48,12 +44,8 @@ bot.on('web_app_data', async (ctx) => {
             data = raw;
         }
 
-        console.log("✅ Распознанные данные:", data);
-        
         const amount = Math.round(data.totalPrice || 0);
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
-
-        console.log(`💳 Выставляю счет на ${amount} UZS...`);
 
         await ctx.replyWithInvoice({
             title: 'Мебель FORMA',
@@ -62,25 +54,20 @@ bot.on('web_app_data', async (ctx) => {
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: amount * 100 }],
-            start_parameter: 'order-smart-glocal'
+            start_parameter: 'order-process'
         });
         
     } catch (e) {
-        console.error("❌ ОШИБКА:", e.message);
-        ctx.reply("Ошибка при обработке заказа. Мы уже чиним её!");
+        console.error("❌ ОШИБКА ИНВОЙСА:", e.message);
     }
 });
 
-// ПОДТВЕРЖДЕНИЕ ПЛАТЕЖА
-bot.on('pre_checkout_query', (ctx) => {
-    console.log("💎 Обработка pre_checkout_query...");
-    ctx.answerPreCheckoutQuery(true);
-});
+bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// УСПЕШНАЯ ОПЛАТА И УВЕДОМЛЕНИЯ
 bot.on('successful_payment', async (ctx) => {
     try {
-        const payload = JSON.parse(ctx.message.successful_payment.invoice_payload);
+        const payment = ctx.message.successful_payment;
+        const payload = JSON.parse(payment.invoice_payload);
         
         const itemsStr = Object.entries(payload.items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
@@ -88,38 +75,29 @@ bot.on('successful_payment', async (ctx) => {
 
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
-            "Имя клиента": ctx.from.first_name,
+            "Имя клиента": ctx.from.first_name || "Клиент",
             "Адрес": "Заказ из каталога",
-            "Сумма (сум)": ctx.message.successful_payment.total_amount / 100,
-            "Товары": itemsStr || "Мебель",
+            "Сумма (сум)": payment.total_amount / 100,
+            "Товары": itemsStr || "Товары",
             "ID пользователя": String(ctx.from.id)
         };
 
-        // 1. Запись в таблицу
         await saveOrderToSheets(rowData);
-        
-        // 2. Сообщение клиенту
-        await ctx.reply("✨ УРА! Оплата прошла успешно. Мы уже начали собирать ваш заказ!");
+        await ctx.reply("✨ Оплата прошла успешно!");
 
-        // 3. НОВОЕ: Уведомление администратору (Вам)
+        // ИСПРАВЛЕННЫЙ БЛОК УВЕДОМЛЕНИЯ (HTML)
         if (ADMIN_ID) {
-            const username = ctx.from.username ? `(@${ctx.from.username})` : '';
-            // Используем HTML теги <b> вместо звездочек
-            const adminMessage = `
-💰 <b>НОВЫЙ ЗАКАЗ ОПЛАЧЕН!</b>
-👤 <b>Клиент:</b> ${ctx.from.first_name} ${username}
-📦 <b>Товары:</b> ${itemsStr}
-💵 <b>Сумма:</b> ${(ctx.message.successful_payment.total_amount / 100).toLocaleString('ru-RU')} сум
-📅 <b>Дата:</b> ${rowData["Дата"]}
-            `;
-            // Меняем parse_mode на 'HTML'
-            await bot.telegram.sendMessage(ADMIN_ID, adminMessage, { parse_mode: 'HTML' });
+            const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n` +
+                             `👤 <b>Клиент:</b> ${ctx.from.first_name}\n` +
+                             `📦 <b>Товары:</b> ${itemsStr}\n` +
+                             `💵 <b>Сумма:</b> ${(payment.total_amount / 100).toLocaleString()} сум`;
+            
+            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, { parse_mode: 'HTML' });
             console.log("✅ Уведомление админу отправлено");
         }
-
     } catch (e) {
-        console.error("Ошибка после оплаты:", e.message);
+        console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message);
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот успешно запущен и готов к работе!'));
+bot.launch().then(() => console.log('🚀 Бот запущен!'));
