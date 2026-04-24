@@ -53,36 +53,22 @@
         .p-name { font-size: 13px; font-weight: 400; margin: 0; }
         .p-price { font-size: 15px; font-weight: 600; margin: 5px 0; }
 
-        /* СПЕЦИАЛЬНОЕ ПРЕДЛОЖЕНИЕ */
-        .promo-banner {
-            margin: 0 20px 30px 20px;
-            background-color: #fdf2f0;
-            border-radius: 25px;
-            padding: 25px;
-            display: flex;
-            align-items: center;
-            position: relative;
-        }
-        .promo-text h4 { font-size: 10px; text-transform: uppercase; color: #e57373; margin: 0 0 5px 0; }
-        .promo-text h2 { font-size: 18px; font-weight: 400; margin: 0 0 10px 0; }
-        .promo-link { font-size: 12px; text-decoration: underline; color: var(--hint); }
-        .promo-img { font-size: 50px; position: absolute; right: 20px; top: 20px; }
-
-        /* ВЫБОР РЕДАКЦИИ */
-        .editor-choice { margin: 0 20px 30px 20px; display: flex; gap: 20px; align-items: center; }
-        .editor-img-box { width: 40%; background: #f8f8f8; border-radius: 20px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 50px; }
-        .editor-info { width: 60%; }
-        .tag-mini { font-size: 8px; text-transform: uppercase; color: var(--accent-color); letter-spacing: 1px; margin-bottom: 5px; }
-        .editor-info h4 { font-size: 16px; font-weight: 400; margin: 0 0 5px 0; }
-        .editor-info p { font-size: 10px; color: var(--hint); line-height: 1.4; margin-bottom: 10px; }
-        .price-big { font-size: 16px; font-weight: 600; }
-
         /* НАВИГАЦИЯ */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #eee; z-index: 100; }
-        .nav-item { text-align: center; color: #ccc; }
+        .nav-item { text-align: center; color: #ccc; cursor: pointer; transition: 0.2s; }
         .nav-item.active { color: #000; }
         .nav-item div { font-size: 20px; }
         .nav-item p { font-size: 9px; margin: 4px 0 0 0; }
+
+        /* СЕКЦИИ ПРОФИЛЯ И ПОИСКА */
+        .promo-banner { margin: 0 20px 30px 20px; background-color: #fdf2f0; border-radius: 25px; padding: 25px; display: flex; align-items: center; position: relative; }
+        .promo-img { font-size: 50px; position: absolute; right: 20px; top: 20px; }
+        
+        #search-input { 
+            width: 90%; margin: 0 auto; display: block; padding: 15px; 
+            border-radius: 15px; border: 1px solid #eee; 
+            font-family: inherit; font-size: 16px; outline: none;
+        }
     </style>
 </head>
 <body>
@@ -92,115 +78,32 @@
         <div style="font-size: 20px; display: flex; gap: 15px;"><span>🔍</span><span>👜</span></div>
     </header>
 
-    <div class="section-header">
-        <h2>Категории</h2>
-        <div class="view-all">Все ➔</div>
-    </div>
-    
-    <div class="categories">
-        <div class="cat-item active"><div class="cat-icon">🛋️</div><span>Диваны</span></div>
-        <div class="cat-item"><div class="cat-icon">🪑</div><span>Кресла</span></div>
-        <div class="cat-item"><div class="cat-icon">🛏️</div><span>Кровати</span></div>
-        <div class="cat-item"><div class="cat-icon">🪞</div><span>Зеркала</span></div>
-    </div>
-
-    <div class="section-header">
-        <h2>Популярное</h2>
-    </div>
-
-    <div class="products-grid" id="grid"></div>
-
-    <div class="section-header">
-        <h2>Специальное предложение</h2>
-    </div>
-    <div class="promo-banner">
-        <div class="promo-text">
-            <h4>Специальное предложение</h4>
-            <h2>Скидка 15%<br>на гостиные</h2>
-            <div class="promo-link">Подробнее</div>
-        </div>
-        <div class="promo-img">🛋️</div>
-    </div>
-
-    <div class="section-header">
-        <h2>Выбор редакции</h2>
-    </div>
-    <div class="editor-choice" onclick="addToCart('mirror_arch', 1899000)">
-        <div class="editor-img-box">🪞</div>
-        <div class="editor-info">
-            <div class="tag-mini">Лимитированная серия</div>
-            <h4>Зеркало Arch</h4>
-            <p>Арочная форма, латунная рама. Создаёт ощущение объема.</p>
-            <div class="price-big">от 1 899 000 сум</div>
-        </div>
-    </div>
-
-    <div class="nav-bar">
-        <div class="nav-item active"><div>🏠</div><p>Главная</p></div>
-        <div class="nav-item"><div>🔍</div><p>Поиск</p></div>
-        <div class="nav-item"><div>❤️</div><p>Избранное</p></div>
-        <div class="nav-item"><div>🛒</div><p>Корзина</p></div>
-        <div class="nav-item"><div>👤</div><p>Профиль</p></div>
-    </div>
-
-<script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    const products = [
-        { id: 'sofa_lund', name: 'Диван Lund', price: 8999000, icon: '🛋️', tag: 'NEW', fav: false },
-        { id: 'chair_mist', name: 'Кресло Mist', price: 2799000, icon: '🪑', tag: '-20%', fav: true },
-        { id: 'bed_scandi', name: 'Кровать Scandi', price: 6499000, icon: '🛏️', tag: '', fav: false },
-        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 999000, icon: '💡', tag: '', fav: false }
-    ];
-
-    let cart = {};
-
-    function render() {
-        const grid = document.getElementById('grid');
-        grid.innerHTML = '';
-        products.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'product-card';
-            div.onclick = () => addToCart(p.id, p.price);
-            div.innerHTML = `
-                <div class="product-img-box">
-                    ${p.tag ? `<div class="badge">${p.tag}</div>` : ''}
-                    <div class="fav-icon ${p.fav ? 'active' : ''}">❤️</div>
-                    ${p.icon}
-                </div>
-                <p class="p-name">${p.name}</p>
-                <p class="p-price">${p.price.toLocaleString()} сум</p>
-            `;
-            grid.appendChild(div);
-        });
-    }
-
-    function addToCart(id, price) {
-        cart[id] = (cart[id] || 0) + 1;
-        tg.HapticFeedback.impactOccurred('medium');
+    <main id="content">
         
-        let total = 0;
-        for(let k in cart) {
-            const p = products.find(prod => prod.id === k) || {price: 1899000}; 
-            total += p.price * cart[k];
-        }
+        <section id="page-home" class="page">
+            <div class="section-header">
+                <h2>Категории</h2>
+                <div class="view-all">Все ➔</div>
+            </div>
+            
+            <div class="categories">
+                <div class="cat-item active"><div class="cat-icon">🛋️</div><span>Диваны</span></div>
+                <div class="cat-item"><div class="cat-icon">🪑</div><span>Кресла</span></div>
+                <div class="cat-item"><div class="cat-icon">🛏️</div><span>Кровати</span></div>
+                <div class="cat-item"><div class="cat-icon">🪞</div><span>Зеркала</span></div>
+            </div>
 
-        tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
-        tg.MainButton.setParams({ color: '#1a1a1a' });
-        tg.MainButton.show();
-    }
+            <div class="section-header"><h2>Популярное</h2></div>
+            <div class="products-grid" id="grid"></div>
 
-    tg.MainButton.onClick(() => {
-        const orderData = { products: cart, totalPrice: 0 };
-        for(let k in cart) {
-            const p = products.find(prod => prod.id === k) || {price: 1899000};
-            orderData.totalPrice += p.price * cart[k];
-        }
-        tg.sendData(JSON.stringify(orderData));
-    });
+            <div class="section-header"><h2>Спецпредложение</h2></div>
+            <div class="promo-banner">
+                <div style="width: 70%">
+                    <h2 style="font-size: 18px; margin: 0;">Скидка 15% на гостиные</h2>
+                </div>
+                <div class="promo-img">🛋️</div>
+            </div>
+        </section>
 
-    render();
-</script>
-</body>
-</html>
+        <section id="page-search" class="page" style="display: none;">
+            <div class="section-header
