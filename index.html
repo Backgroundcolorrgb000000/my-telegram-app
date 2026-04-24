@@ -197,19 +197,29 @@
         });
     }
 
-    function renderFavs() {
-        const favItems = products.filter(p => favorites[p.id] === true);
-        const container = document.getElementById('fav-grid');
-        const emptyMsg = document.getElementById('fav-empty');
-        
-        container.innerHTML = '';
-        if(favItems.length > 0) {
-            render('fav-grid', favItems);
-            emptyMsg.style.display = 'none';
-        } else {
-            emptyMsg.style.display = 'block';
+  function renderFavs() {
+    // Фильтруем товары: только те, что есть в списке favorites со значением true
+    const favItems = products.filter(p => favorites[p.id] === true);
+    const container = document.getElementById('fav-grid');
+    const emptyMsg = document.getElementById('fav-empty');
+    
+    // ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: 
+    // Если в favorites есть ID, которого нет в массиве products, удаляем его
+    Object.keys(favorites).forEach(id => {
+        if (!products.find(p => p.id === id)) {
+            delete favorites[id];
         }
+    });
+    localStorage.setItem('forma_favs', JSON.stringify(favorites));
+
+    container.innerHTML = '';
+    if(favItems.length > 0) {
+        render('fav-grid', favItems); // Рисуем карточки
+        if(emptyMsg) emptyMsg.style.display = 'none';
+    } else {
+        if(emptyMsg) emptyMsg.style.display = 'block';
     }
+}
 
     function addToCart(id) {
         cart[id] = (cart[id] || 0) + 1;
