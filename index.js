@@ -8,7 +8,7 @@ const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_ID; 
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
 
-// 1. СЕРВЕР ДЛЯ RAILWAY
+// Сервер для Railway
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200);
@@ -27,19 +27,18 @@ async function saveOrderToSheets(rowData) {
         const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
         await doc.loadInfo();
         await doc.sheetsByIndex[0].addRow(rowData);
-        console.log("✅ Запись в Google Sheets");
+        console.log("✅ Данные записаны в таблицу");
     } catch (e) {
-        console.error("❌ Таблица:", e.message);
+        console.error("❌ Ошибка таблицы:", e.message);
     }
 }
 
 bot.start((ctx) => {
-    ctx.reply('Магазин мебели FORMA готов!', 
+    ctx.reply('Магазин мебели FORMA готов к работе!', 
         Markup.keyboard([[Markup.button.webApp('🛒 Открыть каталог', webAppUrl)]]).resize()
     );
 });
 
-// ИСПРАВЛЕННЫЙ ПРИЕМ ДАННЫХ
 bot.on('web_app_data', async (ctx) => {
     try {
         const data = JSON.parse(ctx.webAppData.data.json());
@@ -56,9 +55,10 @@ bot.on('web_app_data', async (ctx) => {
             prices: [{ label: 'Товары', amount: amount * 100 }], 
             start_parameter: 'order-process'
         });
+        
     } catch (e) {
-        console.error("❌ Инвойс:", e.message);
-        ctx.reply("Ошибка платежа. Попробуйте еще раз.");
+        console.error("❌ ОШИБКА ИНВОЙСА:", e.message);
+        ctx.reply("Ошибка при создании счета. Попробуйте еще раз.");
     }
 });
 
@@ -68,6 +68,7 @@ bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const payload = JSON.parse(payment.invoice_payload);
+        
         const itemsStr = Object.entries(payload.items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
@@ -75,7 +76,7 @@ bot.on('successful_payment', async (ctx) => {
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
-            "Адрес": "Заказ из Mini App",
+            "Адрес": "Заказ из каталога",
             "Сумма (сум)": payment.total_amount / 100,
             "Товары": itemsStr,
             "ID пользователя": String(ctx.from.id)
@@ -89,14 +90,15 @@ bot.on('successful_payment', async (ctx) => {
                              `👤 <b>Клиент:</b> ${ctx.from.first_name}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Сумма:</b> ${(payment.total_amount / 100).toLocaleString()} сум`;
+            
             await bot.telegram.sendMessage(ADMIN_ID, adminMsg, { parse_mode: 'HTML' });
         }
     } catch (e) {
-        console.error("❌ Успешная оплата:", e.message);
+        console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message);
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот в эфире!'));
+bot.launch().then(() => console.log('🚀 Бот запущен!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
