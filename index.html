@@ -3,107 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>FORMA Furniture Store</title>
+    <title>FORMA Store</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg-color: #ffffff;
-            --text-color: #1a1a1a;
-            --accent-color: #d4a373;
-            --sec-bg: #fdfaf7;
-            --hint: #8e8e93;
-        }
-
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: 'Montserrat', sans-serif;
-            margin: 0;
-            padding-bottom: 120px;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            padding: 20px;
-            align-items: center;
-        }
-
+        :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; }
+        body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
+        header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
-
-        .section-header { display: flex; justify-content: space-between; align-items: center; padding: 0 20px; margin-top: 25px; margin-bottom: 15px; }
+        .section-header { display: flex; justify-content: space-between; padding: 0 20px; margin-top: 20px; }
         .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
-        .view-all { font-size: 12px; color: var(--hint); }
+        
+        /* Сетка товаров */
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+        .product-card { background: #f9f9f9; border-radius: 20px; padding: 15px; text-align: center; }
+        .product-img { font-size: 40px; margin-bottom: 10px; height: 80px; display: flex; align-items: center; justify-content: center; }
+        .p-name { font-size: 13px; margin: 5px 0; }
+        .p-price { font-size: 14px; font-weight: 600; }
 
-        /* КАТЕГОРИИ */
-        .categories { display: flex; overflow-x: auto; padding: 0 20px; gap: 15px; margin-bottom: 20px; scrollbar-width: none; }
-        .cat-item { display: flex; flex-direction: column; align-items: center; min-width: 75px; }
-        .cat-icon { width: 70px; height: 70px; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; border: 1px solid transparent; }
-        .cat-item.active .cat-icon { border-color: #000; background: #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
-        .cat-item span { font-size: 11px; color: var(--text-color); }
-
-        /* СЕТКА ТОВАРОВ */
-        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 0 20px; }
-        .product-card { position: relative; }
-        .product-img-box { width: 100%; aspect-ratio: 1; background: #f8f8f8; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 40px; margin-bottom: 10px; position: relative; }
-        .badge { position: absolute; top: 10px; left: 10px; background: #fff; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 600; }
-        .fav-icon { position: absolute; top: 10px; right: 10px; font-size: 18px; color: #eee; }
-        .fav-icon.active { color: #ff5252; }
-        .p-name { font-size: 13px; font-weight: 400; margin: 0; }
-        .p-price { font-size: 15px; font-weight: 600; margin: 5px 0; }
-
-        /* НАВИГАЦИЯ */
-        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 15px 0; border-top: 1px solid #eee; z-index: 100; }
-        .nav-item { text-align: center; color: #ccc; cursor: pointer; transition: 0.2s; }
+        /* Навигация */
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
+        .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; }
         .nav-item.active { color: #000; }
         .nav-item div { font-size: 20px; }
-        .nav-item p { font-size: 9px; margin: 4px 0 0 0; }
+        .nav-item p { font-size: 10px; margin: 4px 0 0; }
 
-        /* СЕКЦИИ ПРОФИЛЯ И ПОИСКА */
-        .promo-banner { margin: 0 20px 30px 20px; background-color: #fdf2f0; border-radius: 25px; padding: 25px; display: flex; align-items: center; position: relative; }
-        .promo-img { font-size: 50px; position: absolute; right: 20px; top: 20px; }
-        
-        #search-input { 
-            width: 90%; margin: 0 auto; display: block; padding: 15px; 
-            border-radius: 15px; border: 1px solid #eee; 
-            font-family: inherit; font-size: 16px; outline: none;
-        }
+        /* Поиск и Профиль */
+        .page { display: none; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        #search-input { width: calc(100% - 40px); margin: 20px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 16px; }
     </style>
 </head>
 <body>
 
     <header>
         <div class="logo">FORMA</div>
-        <div style="font-size: 20px; display: flex; gap: 15px;"><span>🔍</span><span>👜</span></div>
+        <div style="font-size: 20px;">👜</div>
     </header>
 
-    <main id="content">
-        
-        <section id="page-home" class="page">
-            <div class="section-header">
-                <h2>Категории</h2>
-                <div class="view-all">Все ➔</div>
-            </div>
-            
-            <div class="categories">
-                <div class="cat-item active"><div class="cat-icon">🛋️</div><span>Диваны</span></div>
-                <div class="cat-item"><div class="cat-icon">🪑</div><span>Кресла</span></div>
-                <div class="cat-item"><div class="cat-icon">🛏️</div><span>Кровати</span></div>
-                <div class="cat-item"><div class="cat-icon">🪞</div><span>Зеркала</span></div>
-            </div>
-
+    <main id="main-content">
+        <section id="home" class="page active">
             <div class="section-header"><h2>Популярное</h2></div>
-            <div class="products-grid" id="grid"></div>
-
-            <div class="section-header"><h2>Спецпредложение</h2></div>
-            <div class="promo-banner">
-                <div style="width: 70%">
-                    <h2 style="font-size: 18px; margin: 0;">Скидка 15% на гостиные</h2>
+            <div id="grid" class="products-grid"></div>
+            
+            <div style="margin: 20px; background: #fdf2f0; border-radius: 20px; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h3 style="margin: 0; font-size: 16px;">Скидка 15%</h3>
+                    <p style="margin: 5px 0 0; font-size: 12px; color: var(--hint);">на все зеркала</p>
                 </div>
-                <div class="promo-img">🛋️</div>
+                <div style="font-size: 40px;">🪞</div>
             </div>
         </section>
 
-        <section id="page-search" class="page" style="display: none;">
-            <div class="section-header
+        <section id="search" class="page">
+            <input type="text" id="search-input" placeholder="Поиск мебели...">
+            <div id="search-results" class="products-grid"></div>
+        </section>
+
+        <section id="profile" class="page" style="text-align: center; padding-top: 40px;">
+            <div style="width: 80px; height: 80px; background: #eee; border-radius: 50%; margin: 0 auto 15px; font-size: 40px; display: flex; align-items: center; justify-content: center;">👤</div>
+            <h2 id="u-name">Клиент</h2>
+            <p id="u-id" style="color: var(--hint);">ID: ---</p>
+            <div style="margin: 30px 20px; text-align: left; background: #f9f9f9; border-radius: 15px; padding: 15px;">
+                <p>📍 Мои адреса</p>
+                <p>💳 История заказов</p>
+                <p>📞 Поддержка</p>
+            </div>
+        </section>
+    </main>
+
+    <nav class="nav-bar">
+        <div class="nav-item active" onclick="nav('home')"><div>🏠</div><p>Главная</p></div>
+        <div class="nav-item" onclick="nav('search')"><div>🔍</div><p>Поиск</p></div>
+        <div class="nav-item" onclick="nav('profile')"><div>👤</div><p>Профиль</p></div>
+    </nav>
+
+<script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const products = [
+        { id: 'sofa_lund', name: 'Диван Lund', price: 8999000, icon: '🛋️' },
+        { id: 'chair_mist', name: 'Кресло Mist', price: 2799000, icon: '🪑' },
+        { id: 'bed_scandi', name: 'Кровать Scandi', price: 6499000, icon: '🛏️' },
+        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 999000, icon: '💡' },
+        { id: 'mirror_arch', name: 'Зеркало Arch', price: 1899000, icon: '🪞' }
+    ];
+
+    let cart = {};
+
+    function nav(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        
+        document.getElementById(pageId).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        if(pageId === 'profile' && tg.initDataUnsafe.user) {
+            document.getElementById('u-name').innerText = tg.initDataUnsafe.user.first_name;
+            document.getElementById('u-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
+        }
+    }
+
+    function render(containerId, items) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        items.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'product-card';
+            div.onclick = () => addToCart(p);
+            div.innerHTML = `
+                <div class="product-img">${p.icon}</div>
+                <div class="p-name">${p.name}</div>
+                <div class="p-price">${p.price.toLocaleString()} сум</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function addToCart(p) {
+        cart[p.id] = (cart[p.id] || 0) + 1;
+        tg.HapticFeedback.impactOccurred('light');
+        updateMainButton();
+    }
+
+    function updateMainButton() {
+        let total = 0;
+        for (let id in cart) {
+            const p = products.find(prod => prod.id === id);
+            total += p.price * cart[id];
+        }
+        if (total > 0) {
+            tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
+            tg.MainButton.show();
+        }
+    }
+
+    tg.MainButton.onClick(() => {
+        let total = 0;
+        for (let id in cart) {
+            const p = products.find(prod => prod.id === id);
+            total += p.price * cart[id];
+        }
+        tg.sendData(JSON.stringify({ products: cart, totalPrice: total }));
+    });
+
+    // Поиск
+    document.getElementById('search-input').oninput = (e) => {
+        const query = e.target.value.toLowerCase();
+        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
+        render('search-results', filtered);
+    };
+
+    render('grid', products);
+</script>
+</body>
+</html>
