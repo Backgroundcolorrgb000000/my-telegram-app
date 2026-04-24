@@ -131,8 +131,9 @@
         { id: 'mirror_arch', name: 'Зеркало Arch', price: 1899000, icon: '🪞' }
     ];
 
+    // Пытаемся загрузить лайки из памяти браузера или создаем пустой объект
+    let favorites = JSON.parse(localStorage.getItem('forma_favs')) || {};
     let cart = {};
-    let favorites = {}; // Изначально пусто!
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -152,14 +153,21 @@
 
     function toggleFav(e, id) {
         e.stopPropagation();
+        // Переключаем состояние: если было true, станет false, и наоборот
         favorites[id] = !favorites[id];
+        
+        // Сохраняем в память, чтобы после перезагрузки лайки остались
+        localStorage.setItem('forma_favs', JSON.stringify(favorites));
+        
         tg.HapticFeedback.impactOccurred('medium');
         
-        // Перерисовываем ту страницу, на которой находимся
+        // Определяем, какую страницу обновить
         if (document.getElementById('favorites').classList.contains('active')) {
             renderFavs();
-        } else {
+        } else if (document.getElementById('home').classList.contains('active')) {
             render('grid', products);
+        } else {
+            render('search-results', products.filter(p => p.name.toLowerCase().includes(document.getElementById('search-input').value.toLowerCase())));
         }
     }
 
@@ -168,6 +176,7 @@
         if(!container) return;
         container.innerHTML = '';
         items.forEach(p => {
+            // КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем, что значение именно true
             const isFav = favorites[p.id] === true;
             const div = document.createElement('div');
             div.className = 'product-card';
@@ -184,19 +193,21 @@
     }
 
     function renderFavs() {
-        const favItems = products.filter(p => favorites[p.id]);
+        // Фильтруем товары, у которых в объекте favorites стоит true
+        const favItems = products.filter(p => favorites[p.id] === true);
         const container = document.getElementById('fav-grid');
         const emptyMsg = document.getElementById('fav-empty');
         
+        container.innerHTML = '';
         if(favItems.length > 0) {
             render('fav-grid', favItems);
             emptyMsg.style.display = 'none';
         } else {
-            container.innerHTML = '';
             emptyMsg.style.display = 'block';
         }
     }
 
+    // ... остальной код (addToCart, renderCart, changeQty, updateMainButton) оставить без изменений или скопировать из прошлого сообщения
     function addToCart(id) {
         cart[id] = (cart[id] || 0) + 1;
         tg.HapticFeedback.notificationOccurred('success');
@@ -208,13 +219,12 @@
         const emptyMsg = document.getElementById('cart-empty');
         container.innerHTML = '';
         let hasItems = false;
-        
         for (let id in cart) {
             if (cart[id] > 0) {
                 hasItems = true;
                 const p = products.find(prod => prod.id === id);
                 const itemDiv = document.createElement('div');
-                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: var(--accent); padding: 15px; border-radius: 20px; margin-bottom: 10px;";
+                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
                 itemDiv.innerHTML = `
                     <div style="font-size: 24px; margin-right: 15px;">${p.icon}</div>
                     <div style="flex-grow: 1;">
@@ -244,7 +254,7 @@
         let total = 0;
         for (let id in cart) {
             const p = products.find(prod => prod.id === id);
-            total += p.price * cart[id];
+            if(p) total += p.price * cart[id];
         }
         if (total > 0) {
             tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
@@ -255,15 +265,10 @@
     }
 
     tg.MainButton.onClick(() => {
-        tg.sendData(JSON.stringify({ products: cart, totalPrice: 0 }));
+        tg.sendData(JSON.stringify({ products: cart }));
     });
 
-    document.getElementById('search-input').oninput = (e) => {
-        const query = e.target.value.toLowerCase();
-        const filtered = products.filter(p => p.name.toLowerCase().includes(query));
-        render('search-results', filtered);
-    };
-
+    // Инициализация
     render('grid', products);
 </script>
 </body>
