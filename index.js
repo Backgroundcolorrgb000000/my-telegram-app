@@ -43,18 +43,21 @@ bot.start((ctx) => {
     );
 });
 
+// ... (начало кода без изменений)
+
 // 4. ПРИЕМ ДАННЫХ ИЗ КАТАЛОГА
 bot.on('web_app_data', async (ctx) => {
     try {
         let data;
         const raw = ctx.webAppData.data;
 
-        // Распаковываем функции json/text (исправление для Screenshot_8)
-        if (raw && typeof raw.text === 'function') {
-            const text = await raw.text();
-            data = JSON.parse(text);
+        // Корректная распаковка
+        if (typeof raw === 'string') {
+            data = JSON.parse(raw);
+        } else if (raw && typeof raw.text === 'function') {
+            data = JSON.parse(await raw.text());
         } else {
-            data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            data = raw;
         }
 
         console.log("Данные заказа:", data);
@@ -62,22 +65,22 @@ bot.on('web_app_data', async (ctx) => {
 
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
-        await ctx.reply(`✅ Заказ на ${amount.toLocaleString()} сум принят.`);
-
+        // Отправляем счет
         await ctx.replyWithInvoice({
             title: 'Оплата мебели FORMA',
             description: 'Ваш заказ из каталога',
-            payload: JSON.stringify({ items: data.products || {} }),
+            payload: JSON.stringify({ order_items: data.products || {} }), // Используем уникальный ключ
             provider_token: PAYMENT_TOKEN,
             currency: 'UZS',
             prices: [{ label: 'Товары', amount: amount * 100 }],
             start_parameter: 'order'
         });
     } catch (e) {
-        console.error("Ошибка выставления счета:", e.message);
+        console.error("Ошибка счета:", e.message);
     }
 });
 
+// ОБЯЗАТЕЛЬНО: Подтверждение перед оплатой
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
 // 5. ПОСЛЕ ОПЛАТЫ
@@ -86,7 +89,8 @@ bot.on('successful_payment', async (ctx) => {
         const payment = ctx.message.successful_payment;
         const payload = JSON.parse(payment.invoice_payload);
         
-        const itemsStr = Object.entries(payload.items || {})
+        // Синхронизируем ключ с тем, что отправили в payload (order_items)
+        const itemsStr = Object.entries(payload.order_items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
@@ -95,18 +99,18 @@ bot.on('successful_payment', async (ctx) => {
             "Имя клиента": ctx.from.first_name || "Клиент",
             "Адрес": "Заказ из приложения",
             "Сумма (сум)": payment.total_amount / 100,
-            "Товары": itemsStr,
+            "Товары": itemsStr || "Товары",
             "ID пользователя": String(ctx.from.id)
         };
 
         await saveOrderToSheets(rowData);
-        await ctx.reply("🎉 Оплата принята! Данные в таблице.");
+        await ctx.reply("🎉 Оплата принята! Мы уже начали собирать ваш заказ.");
     } catch (e) {
-        console.error("Ошибка успешной оплаты:", e.message);
+        console.error("Ошибка после оплаты:", e.message);
     }
 });
 
-// ЗАПУСК
+// ... (запуск бота)
 bot.launch().then(() => console.log('🚀 Бот запущен с НОВЫМ токеном!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
