@@ -90,12 +90,13 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    // ОБНОВЛЕННЫЕ ЦЕНЫ (в долларах)
     const products = [
-        { id: 'sofa_lund', name: 'Диван Lund', price: 8999000, icon: '🛋️' },
-        { id: 'chair_mist', name: 'Кресло Mist', price: 2799000, icon: '🪑' },
-        { id: 'bed_scandi', name: 'Кровать Scandi', price: 6499000, icon: '🛏️' },
-        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 999000, icon: '💡' },
-        { id: 'mirror_arch', name: 'Зеркало Arch', price: 1899000, icon: '🪞' }
+        { id: 'sofa_lund', name: 'Диван Lund', price: 899, icon: '🛋️' },
+        { id: 'chair_mist', name: 'Кресло Mist', price: 279, icon: '🪑' },
+        { id: 'bed_scandi', name: 'Кровать Scandi', price: 649, icon: '🛏️' },
+        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 99, icon: '💡' },
+        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, icon: '🪞' }
     ];
 
     let cart = {};
@@ -126,7 +127,7 @@
             div.innerHTML = `
                 <div class="product-img">${p.icon}</div>
                 <div class="p-name">${p.name}</div>
-                <div class="p-price">${p.price.toLocaleString()} сум</div>
+                <div class="p-price">$ ${p.price}</div>
             `;
             container.appendChild(div);
         });
@@ -155,7 +156,7 @@
                     <div style="font-size: 24px; margin-right: 15px;">${p.icon}</div>
                     <div style="flex-grow: 1;">
                         <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
-                        <div style="font-size: 12px; color: var(--hint);">${p.price.toLocaleString()} сум</div>
+                        <div style="font-size: 12px; color: var(--hint);">$ ${p.price}</div>
                     </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button>
@@ -183,7 +184,7 @@
             if(p) total += p.price * cart[id];
         }
         if (total > 0) {
-            tg.MainButton.setText(`Оформить заказ: ${total.toLocaleString()} сум`);
+            tg.MainButton.setText(`Оформить заказ: $ ${total}`);
             tg.MainButton.show();
         } else {
             tg.MainButton.hide();
