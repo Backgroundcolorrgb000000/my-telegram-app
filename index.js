@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// Версия v=5 для загрузки новой формы доставки
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=5';
+// Версия v=7 (обновление кэша для выбора доставки)
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=7';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -47,7 +47,6 @@ bot.on('web_app_data', async (ctx) => {
         
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
-        // Передаем данные клиента прямо в payload инвойса, чтобы достать их после оплаты
         await ctx.replyWithInvoice({
             title: 'Мебель FORMA',
             description: 'Оплата заказа',
@@ -55,11 +54,12 @@ bot.on('web_app_data', async (ctx) => {
                 items: data.products,
                 cName: data.customerName,
                 cPhone: data.customerPhone,
-                cAddress: data.deliveryAddress
+                cAddress: data.deliveryAddress,
+                cDelivery: data.deliveryMethod // Захватываем способ доставки
             }),
             provider_token: PAYMENT_TOKEN,
             currency: 'USD',
-            prices: [{ label: 'Товары', amount: amount * 100 }], 
+            prices: [{ label: 'Итого к оплате', amount: amount * 100 }], 
             start_parameter: 'order-process'
         });
         
@@ -83,8 +83,8 @@ bot.on('successful_payment', async (ctx) => {
 
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
-            "Имя клиента": `${payload.cName} (${payload.cPhone})`, // Имя + Телефон
-            "Адрес": payload.cAddress,
+            "Имя клиента": `${payload.cName} (${payload.cPhone})`,
+            "Адрес": `${payload.cDelivery} - ${payload.cAddress}`, // Пишем тип доставки и адрес
             "Сумма ($)": payment.total_amount / 100,
             "Товары": itemsStr,
             "ID пользователя": String(userId)
@@ -93,14 +93,15 @@ bot.on('successful_payment', async (ctx) => {
         await saveOrderToSheets(rowData);
         await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
 
-        // Улучшенное уведомление админу
+        // Обновленное уведомление админу с учетом способа доставки
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${payload.cName}\n` +
                              `📞 <b>Телефон:</b> ${payload.cPhone}\n` +
+                             `🚚 <b>Тип доставки:</b> ${payload.cDelivery}\n` +
                              `📍 <b>Адрес:</b> ${payload.cAddress}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
-                             `💵 <b>Сумма:</b> $ ${payment.total_amount / 100}`;
+                             `💵 <b>Итого:</b> $ ${payment.total_amount / 100}`;
             
             await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
                 parse_mode: 'HTML',
@@ -120,7 +121,7 @@ bot.on('successful_payment', async (ctx) => {
 bot.action(/accept_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
-        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nКурьер позвонит вам перед доставкой.", { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер скоро свяжется с вами для уточнения деталей.", { parse_mode: 'HTML' });
         await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🟢 <b>СТАТУС: ПРИНЯТ</b>", { parse_mode: 'HTML' });
         await ctx.answerCbQuery("Заказ принят!");
     } catch (e) {
@@ -131,7 +132,7 @@ bot.action(/accept_(.+)/, async (ctx) => {
 bot.action(/reject_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
-        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, мы вынуждены отменить заказ.</b>\nДеньги будут возвращены, обратитесь в поддержку.", { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, ваш заказ отменен.</b>\nЕсли у вас есть вопросы, пожалуйста, напишите в поддержку.", { parse_mode: 'HTML' });
         await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🔴 <b>СТАТУС: ОТКЛОНЕН</b>", { parse_mode: 'HTML' });
         await ctx.answerCbQuery("Заказ отклонен.");
     } catch (e) {
@@ -139,7 +140,7 @@ bot.action(/reject_(.+)/, async (ctx) => {
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 5: форма доставки)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 7: калькулятор доставки)!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
