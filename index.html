@@ -12,14 +12,14 @@
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
         .categories { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
-        .cat-item { text-align: center; min-width: 70px; }
-        .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; }
-        .cat-item.active .cat-icon { border-color: #000; background: #fff; }
+        .cat-item { text-align: center; min-width: 70px; cursor: pointer; }
+        .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; transition: 0.2s; }
+        .cat-item.active .cat-icon { border-color: #000; background: #fff; transform: scale(1.05); }
         .cat-item p { font-size: 11px; margin: 0; }
         .section-header { display: flex; justify-content: space-between; padding: 20px; }
         .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
-        .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; }
+        .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; animation: fadeIn 0.3s; }
         .product-card:active { transform: scale(0.95); }
         .product-img { font-size: 45px; margin: 10px 0; height: 80px; display: flex; align-items: center; justify-content: center; }
         .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; }
@@ -48,18 +48,20 @@
         <section id="home" class="page active">
             <div class="section-header"><h2>Категории</h2></div>
             <div class="categories">
-                <div class="cat-item active"><div class="cat-icon">🛋️</div><p>Диваны</p></div>
-                <div class="cat-item"><div class="cat-icon">🪑</div><p>Кресла</p></div>
-                <div class="cat-item"><div class="cat-icon">🛏️</div><p>Кровати</p></div>
-                <div class="cat-item"><div class="cat-icon">🪞</div><p>Зеркала</p></div>
+                <div class="cat-item active" onclick="filterCategory('all', this)"><div class="cat-icon">🌟</div><p>Все</p></div>
+                <div class="cat-item" onclick="filterCategory('sofas', this)"><div class="cat-icon">🛋️</div><p>Диваны</p></div>
+                <div class="cat-item" onclick="filterCategory('chairs', this)"><div class="cat-icon">🪑</div><p>Кресла</p></div>
+                <div class="cat-item" onclick="filterCategory('beds', this)"><div class="cat-icon">🛏️</div><p>Кровати</p></div>
+                <div class="cat-item" onclick="filterCategory('mirrors', this)"><div class="cat-icon">🪞</div><p>Зеркала</p></div>
             </div>
-            <div class="section-header"><h2>Популярное</h2></div>
+            
+            <div class="section-header"><h2 id="grid-title">Популярное</h2></div>
             <div id="grid" class="products-grid"></div>
         </section>
 
         <section id="search" class="page">
             <div class="section-header"><h2>Поиск</h2></div>
-            <input type="text" id="search-input" placeholder="Что вы ищете?">
+            <input type="text" id="search-input" placeholder="Что вы ищете?" oninput="searchProducts()">
             <div id="search-results" class="products-grid"></div>
         </section>
 
@@ -90,16 +92,17 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // ОБНОВЛЕННЫЕ ЦЕНЫ (в долларах)
+    // ДОБАВЛЕНО ПОЛЕ category К КАЖДОМУ ТОВАРУ
     const products = [
-        { id: 'sofa_lund', name: 'Диван Lund', price: 899, icon: '🛋️' },
-        { id: 'chair_mist', name: 'Кресло Mist', price: 279, icon: '🪑' },
-        { id: 'bed_scandi', name: 'Кровать Scandi', price: 649, icon: '🛏️' },
-        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 99, icon: '💡' },
-        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, icon: '🪞' }
+        { id: 'sofa_lund', name: 'Диван Lund', price: 899, icon: '🛋️', category: 'sofas' },
+        { id: 'chair_mist', name: 'Кресло Mist', price: 279, icon: '🪑', category: 'chairs' },
+        { id: 'bed_scandi', name: 'Кровать Scandi', price: 649, icon: '🛏️', category: 'beds' },
+        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 99, icon: '💡', category: 'lighting' },
+        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, icon: '🪞', category: 'mirrors' }
     ];
 
     let cart = {};
+    let currentCategory = 'all';
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -113,13 +116,45 @@
             document.getElementById('u-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
         }
         if(pageId === 'cart') renderCart();
-        if(pageId === 'home') render('grid', products);
+        if(pageId === 'home') {
+            // Возвращаем ту же категорию, которую смотрели до ухода
+            if(currentCategory === 'all') render('grid', products);
+            else render('grid', products.filter(p => p.category === currentCategory));
+        }
+    }
+
+    // НОВАЯ ФУНКЦИЯ ДЛЯ ФИЛЬТРАЦИИ КАТЕГОРИЙ
+    function filterCategory(cat, el) {
+        document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        currentCategory = cat;
+        
+        if (cat === 'all') {
+            render('grid', products);
+            document.getElementById('grid-title').innerText = 'Популярное';
+        } else {
+            const filtered = products.filter(p => p.category === cat);
+            render('grid', filtered);
+            document.getElementById('grid-title').innerText = el.innerText;
+        }
+        tg.HapticFeedback.selectionChanged(); // Легкая вибрация при выборе
+    }
+
+    // РЕАЛИЗАЦИЯ ЖИВОГО ПОИСКА
+    function searchProducts() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const results = products.filter(p => p.name.toLowerCase().includes(query));
+        render('search-results', results);
     }
 
     function render(containerId, items) {
         const container = document.getElementById(containerId);
         if(!container) return;
         container.innerHTML = '';
+        if(items.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:var(--hint); grid-column:span 2;">Ничего не найдено</p>';
+            return;
+        }
         items.forEach(p => {
             const div = document.createElement('div');
             div.className = 'product-card';
@@ -200,6 +235,7 @@
         tg.sendData(JSON.stringify({ products: cart, totalPrice: total }));
     });
 
+    // Инициализация при старте (рендерим всё)
     render('grid', products);
 </script>
 </body>
