@@ -7,7 +7,6 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// Версия v=7 (обновление кэша для выбора доставки)
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=7';
 
 const port = process.env.PORT || 3000;
@@ -17,6 +16,9 @@ http.createServer((req, res) => {
 }).listen(port);
 
 const bot = new Telegraf(token);
+
+// 🛠️ НОВОЕ: Временное хранилище для заказов (чтобы обойти лимит Telegram в 128 байт)
+const pendingOrders = new Map();
 
 async function saveOrderToSheets(rowData) {
     try {
@@ -47,16 +49,23 @@ bot.on('web_app_data', async (ctx) => {
         
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
+        // 1. Создаем короткий уникальный ID заказа
+        const orderId = `order_${Date.now()}`;
+
+        // 2. Сохраняем все "тяжелые" данные в память бота
+        pendingOrders.set(orderId, {
+            items: data.products,
+            cName: data.customerName,
+            cPhone: data.customerPhone,
+            cAddress: data.deliveryAddress,
+            cDelivery: data.deliveryMethod
+        });
+
+        // 3. Отправляем инвойс только с коротким ID (он точно меньше 128 символов!)
         await ctx.replyWithInvoice({
             title: 'Мебель FORMA',
             description: 'Оплата заказа',
-            payload: JSON.stringify({ 
-                items: data.products,
-                cName: data.customerName,
-                cPhone: data.customerPhone,
-                cAddress: data.deliveryAddress,
-                cDelivery: data.deliveryMethod // Захватываем способ доставки
-            }),
+            payload: orderId, // <-- Вот наше исправление
             provider_token: PAYMENT_TOKEN,
             currency: 'USD',
             prices: [{ label: 'Итого к оплате', amount: amount * 100 }], 
@@ -74,32 +83,42 @@ bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
-        const payload = JSON.parse(payment.invoice_payload);
+        const orderId = payment.invoice_payload; // Получаем наш короткий ID
         const userId = ctx.from.id;
         
-        const itemsStr = Object.entries(payload.items || {})
+        // Достаем данные из памяти бота
+        const orderData = pendingOrders.get(orderId) || {};
+        
+        const itemsStr = Object.entries(orderData.items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
+        const cName = orderData.cName || ctx.from.first_name;
+        const cPhone = orderData.cPhone || "Не указан";
+        const cDelivery = orderData.cDelivery || "Не указана";
+        const cAddress = orderData.cAddress || "Не указан";
+
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
-            "Имя клиента": `${payload.cName} (${payload.cPhone})`,
-            "Адрес": `${payload.cDelivery} - ${payload.cAddress}`, // Пишем тип доставки и адрес
+            "Имя клиента": `${cName} (${cPhone})`,
+            "Адрес": `${cDelivery} - ${cAddress}`,
             "Сумма ($)": payment.total_amount / 100,
-            "Товары": itemsStr,
+            "Товары": itemsStr || "Товары",
             "ID пользователя": String(userId)
         };
 
         await saveOrderToSheets(rowData);
         await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
 
-        // Обновленное уведомление админу с учетом способа доставки
+        // Удаляем заказ из временной памяти, чтобы не засорять сервер
+        pendingOrders.delete(orderId);
+
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
-                             `👤 <b>Клиент:</b> ${payload.cName}\n` +
-                             `📞 <b>Телефон:</b> ${payload.cPhone}\n` +
-                             `🚚 <b>Тип доставки:</b> ${payload.cDelivery}\n` +
-                             `📍 <b>Адрес:</b> ${payload.cAddress}\n` +
+                             `👤 <b>Клиент:</b> ${cName}\n` +
+                             `📞 <b>Телефон:</b> ${cPhone}\n` +
+                             `🚚 <b>Тип доставки:</b> ${cDelivery}\n` +
+                             `📍 <b>Адрес:</b> ${cAddress}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Итого:</b> $ ${payment.total_amount / 100}`;
             
@@ -140,7 +159,7 @@ bot.action(/reject_(.+)/, async (ctx) => {
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 7: калькулятор доставки)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия: фикс лимита Telegram)!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
