@@ -7,10 +7,9 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// Версия v=2 чтобы гарантированно сбросить кэш у клиента
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=2';
+// Увеличиваем версию для сброса кэша (на всякий случай)
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=3';
 
-// Сервер для Railway
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
     res.writeHead(200);
@@ -29,7 +28,7 @@ async function saveOrderToSheets(rowData) {
         const doc = new GoogleSpreadsheet(process.env.GOOGLE_SHEET_ID, serviceAccountAuth);
         await doc.loadInfo();
         await doc.sheetsByIndex[0].addRow(rowData);
-        console.log("✅ Данные записаны в таблицу");
+        console.log("✅ Запись в Google Sheets");
     } catch (e) {
         console.error("❌ Ошибка таблицы:", e.message);
     }
@@ -43,7 +42,6 @@ bot.start((ctx) => {
 
 bot.on('web_app_data', async (ctx) => {
     try {
-        // Правильный путь к данным в Telegraf
         const data = JSON.parse(ctx.message.web_app_data.data);
         const amount = Math.round(data.totalPrice || 0); 
         
@@ -71,6 +69,7 @@ bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const payload = JSON.parse(payment.invoice_payload);
+        const userId = ctx.from.id;
         
         const itemsStr = Object.entries(payload.items || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
@@ -82,26 +81,58 @@ bot.on('successful_payment', async (ctx) => {
             "Адрес": "Заказ из каталога",
             "Сумма (сум)": payment.total_amount / 100,
             "Товары": itemsStr,
-            "ID пользователя": String(ctx.from.id)
+            "ID пользователя": String(userId)
         };
 
         await saveOrderToSheets(rowData);
-        await ctx.reply("✨ Оплата прошла успешно!");
+        await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
 
+        // УВЕДОМЛЕНИЕ АДМИНУ С КНОПКАМИ
         if (ADMIN_ID) {
-            const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n` +
+            const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${ctx.from.first_name}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Сумма:</b> ${(payment.total_amount / 100).toLocaleString()} сум`;
             
-            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, { parse_mode: 'HTML' });
+            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
+                parse_mode: 'HTML',
+                ...Markup.inlineKeyboard([
+                    [
+                        Markup.button.callback('✅ Принять', `accept_${userId}`),
+                        Markup.button.callback('❌ Отклонить', `reject_${userId}`)
+                    ]
+                ])
+            });
         }
     } catch (e) {
         console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message);
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен!'));
+// ОБРАБОТКА НАЖАТИЯ КНОПОК АДМИНОМ
+bot.action(/accept_(.+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    try {
+        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер скоро свяжется с вами для уточнения деталей доставки.", { parse_mode: 'HTML' });
+        await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🟢 <b>СТАТУС: ПРИНЯТ</b>", { parse_mode: 'HTML' });
+        await ctx.answerCbQuery("Заказ принят!");
+    } catch (e) {
+        await ctx.answerCbQuery("Ошибка: не удалось отправить сообщение клиенту.");
+    }
+});
+
+bot.action(/reject_(.+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    try {
+        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, ваш заказ отменен.</b>\nЕсли у вас есть вопросы, пожалуйста, напишите в поддержку.", { parse_mode: 'HTML' });
+        await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🔴 <b>СТАТУС: ОТКЛОНЕН</b>", { parse_mode: 'HTML' });
+        await ctx.answerCbQuery("Заказ отклонен.");
+    } catch (e) {
+        await ctx.answerCbQuery("Ошибка: не удалось отправить сообщение клиенту.");
+    }
+});
+
+bot.launch().then(() => console.log('🚀 Бот запущен с пультом админа!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
