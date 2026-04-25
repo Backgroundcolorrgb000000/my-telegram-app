@@ -32,7 +32,7 @@
         .page { display: none; animation: fadeIn 0.3s; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .custom-input { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
+        .custom-input, .custom-select { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
         .promo-container { display: flex; gap: 10px; margin: 0 15px 15px; }
         .promo-container input { margin: 0; flex-grow: 1; width: auto; }
         .promo-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 15px; padding: 0 20px; font-family: 'Montserrat', sans-serif; cursor: pointer; }
@@ -75,15 +75,22 @@
             <div id="checkout-form" style="display: none; padding-top: 10px;">
                 <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Промокод</h2></div>
                 <div class="promo-container">
-                    <input type="text" id="promo-input" class="custom-input" placeholder="Введите код">
+                    <input type="text" id="promo-input" class="custom-input" placeholder="Введите код (FORMA10)">
                     <button class="promo-btn" onclick="applyPromo()">OK</button>
                 </div>
                 <p id="promo-msg" style="text-align: center; font-size: 12px; margin-top: -5px; margin-bottom: 15px; display: none;"></p>
 
+                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Доставка</h2></div>
+                <select id="delivery-method" class="custom-select" onchange="updateMainButton()">
+                    <option value="0">Самовывоз (Бесплатно)</option>
+                    <option value="15">Стандартная доставка (+$15)</option>
+                    <option value="30">Экспресс-доставка (+$30)</option>
+                </select>
+
                 <div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
                 <input type="text" id="order-name" class="custom-input" placeholder="Ваше имя">
                 <input type="tel" id="order-phone" class="custom-input" placeholder="Номер телефона (обязательно)">
-                <input type="text" id="order-address" class="custom-input" placeholder="Адрес доставки (или Самовывоз)">
+                <input type="text" id="order-address" class="custom-input" placeholder="Адрес (если выбрана доставка)">
             </div>
 
             <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">
@@ -110,7 +117,6 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // ОБНОВИЛИ ССЫЛКУ НА ЗЕРКАЛО
     const products = [
         { id: 'sofa_lund', name: 'Диван Lund', price: 899, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'sofas' },
         { id: 'chair_mist', name: 'Кресло Mist', price: 279, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'chairs' },
@@ -121,7 +127,7 @@
 
     let cart = {};
     let currentCategory = 'all';
-    let discount = 0; // Переменная для скидки
+    let discount = 0;
 
     if (tg.initDataUnsafe.user) {
         document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
@@ -230,8 +236,9 @@
         } else {
             emptyMsg.style.display = 'block';
             checkoutForm.style.display = 'none';
-            discount = 0; // Сбрасываем скидку, если корзина пуста
+            discount = 0;
             document.getElementById('promo-msg').style.display = 'none';
+            document.getElementById('delivery-method').value = "0"; // Сброс доставки
         }
         
         updateMainButton();
@@ -243,13 +250,12 @@
         renderCart();
     }
 
-    // ЛОГИКА ПРОМОКОДА
     function applyPromo() {
         const code = document.getElementById('promo-input').value.trim().toUpperCase();
         const msg = document.getElementById('promo-msg');
         
         if (code === 'FORMA10') {
-            discount = 0.10; // Скидка 10%
+            discount = 0.10;
             msg.style.color = 'green';
             msg.innerText = 'Скидка 10% применена!';
             tg.HapticFeedback.notificationOccurred('success');
@@ -260,7 +266,7 @@
             tg.HapticFeedback.notificationOccurred('error');
         }
         msg.style.display = 'block';
-        updateMainButton(); // Пересчитываем сумму
+        updateMainButton();
     }
 
     function updateMainButton() {
@@ -270,8 +276,11 @@
             if(p) total += p.price * cart[id];
         }
         if (total > 0) {
-            // Применяем скидку
             let finalTotal = total - (total * discount);
+            // Добавляем стоимость доставки к итогу
+            const deliveryCost = parseFloat(document.getElementById('delivery-method').value) || 0;
+            finalTotal += deliveryCost;
+            
             tg.MainButton.setText(`Оформить заказ: $ ${finalTotal.toFixed(2)}`);
             tg.MainButton.show();
         } else {
@@ -281,8 +290,13 @@
 
     tg.MainButton.onClick(() => {
         const phone = document.getElementById('order-phone').value.trim();
-        const address = document.getElementById('order-address').value.trim() || 'Самовывоз';
+        const address = document.getElementById('order-address').value.trim() || 'Не указан';
         const name = document.getElementById('order-name').value.trim() || 'Не указано';
+        
+        // Получаем текстовое название выбранной доставки
+        const deliverySelect = document.getElementById('delivery-method');
+        const deliveryName = deliverySelect.options[deliverySelect.selectedIndex].text;
+        const deliveryCost = parseFloat(deliverySelect.value) || 0;
 
         if (!phone) {
             tg.showAlert("Пожалуйста, укажите контактный номер телефона для связи.");
@@ -295,14 +309,15 @@
             if(p) total += p.price * cart[id];
         }
         
-        let finalTotal = total - (total * discount);
+        let finalTotal = total - (total * discount) + deliveryCost;
         
         const dataToSend = {
             products: cart,
-            totalPrice: finalTotal, // Отправляем боту сумму уже со скидкой!
+            totalPrice: finalTotal,
             customerName: name,
             customerPhone: phone,
-            deliveryAddress: address
+            deliveryAddress: address,
+            deliveryMethod: deliveryName // Передаем метод доставки боту
         };
         
         tg.sendData(JSON.stringify(dataToSend));
