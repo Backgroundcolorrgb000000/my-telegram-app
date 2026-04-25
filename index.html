@@ -21,7 +21,10 @@
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
         .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; animation: fadeIn 0.3s; }
         .product-card:active { transform: scale(0.95); }
-        .product-img { font-size: 45px; margin: 10px 0; height: 80px; display: flex; align-items: center; justify-content: center; }
+        
+        /* ОБНОВЛЕННЫЙ СТИЛЬ ДЛЯ КАРТИНОК ТОВАРОВ */
+        .product-img { width: 100%; height: 120px; object-fit: cover; border-radius: 15px; margin-bottom: 10px; display: block; }
+        
         .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; }
         .p-price { font-size: 14px; font-weight: 600; }
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
@@ -100,18 +103,18 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    // ОБНОВЛЕННЫЕ ДАННЫЕ С РЕАЛЬНЫМИ ФОТОГРАФИЯМИ
     const products = [
-        { id: 'sofa_lund', name: 'Диван Lund', price: 899, icon: '🛋️', category: 'sofas' },
-        { id: 'chair_mist', name: 'Кресло Mist', price: 279, icon: '🪑', category: 'chairs' },
-        { id: 'bed_scandi', name: 'Кровать Scandi', price: 649, icon: '🛏️', category: 'beds' },
-        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 99, icon: '💡', category: 'lighting' },
-        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, icon: '🪞', category: 'mirrors' }
+        { id: 'sofa_lund', name: 'Диван Lund', price: 899, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'sofas' },
+        { id: 'chair_mist', name: 'Кресло Mist', price: 279, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'chairs' },
+        { id: 'bed_scandi', name: 'Кровать Scandi', price: 649, image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'beds' },
+        { id: 'lamp_nordic', name: 'Лампа Nordic', price: 99, image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'lighting' },
+        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, image: 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'mirrors' }
     ];
 
     let cart = {};
     let currentCategory = 'all';
 
-    // Автоматически подставляем имя пользователя из Telegram
     if (tg.initDataUnsafe.user) {
         document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
     }
@@ -168,8 +171,9 @@
             const div = document.createElement('div');
             div.className = 'product-card';
             div.setAttribute('onclick', `addToCart('${p.id}')`);
+            // Вставляем тег <img> вместо эмодзи
             div.innerHTML = `
-                <div class="product-img">${p.icon}</div>
+                <img src="${p.image}" class="product-img" alt="${p.name}">
                 <div class="p-name">${p.name}</div>
                 <div class="p-price">$ ${p.price}</div>
             `;
@@ -197,8 +201,9 @@
                 if (!p) continue;
                 const itemDiv = document.createElement('div');
                 itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
+                // Картинка в корзине
                 itemDiv.innerHTML = `
-                    <div style="font-size: 24px; margin-right: 15px;">${p.icon}</div>
+                    <img src="${p.image}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 15px;">
                     <div style="flex-grow: 1;">
                         <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
                         <div style="font-size: 12px; color: var(--hint);">$ ${p.price}</div>
@@ -213,7 +218,6 @@
             }
         }
         
-        // Показываем форму только если корзина не пуста
         if (hasItems) {
             emptyMsg.style.display = 'none';
             checkoutForm.style.display = 'block';
@@ -245,7 +249,6 @@
         }
     }
 
-    // ВАЛИДАЦИЯ ПЕРЕД ОТПРАВКОЙ
     tg.MainButton.onClick(() => {
         const phone = document.getElementById('order-phone').value.trim();
         const address = document.getElementById('order-address').value.trim() || 'Самовывоз';
