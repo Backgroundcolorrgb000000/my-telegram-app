@@ -7,7 +7,7 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --accent: #f9f9f9; }
+        :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --accent: #f9f9f9; --red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
@@ -21,10 +21,7 @@
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
         .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; animation: fadeIn 0.3s; }
         .product-card:active { transform: scale(0.95); }
-        
-        /* ОБНОВЛЕННЫЙ СТИЛЬ ДЛЯ КАРТИНОК ТОВАРОВ */
         .product-img { width: 100%; height: 120px; object-fit: cover; border-radius: 15px; margin-bottom: 10px; display: block; }
-        
         .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; }
         .p-price { font-size: 14px; font-weight: 600; }
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
@@ -36,6 +33,9 @@
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .custom-input { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
+        .promo-container { display: flex; gap: 10px; margin: 0 15px 15px; }
+        .promo-container input { margin: 0; flex-grow: 1; width: auto; }
+        .promo-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 15px; padding: 0 20px; font-family: 'Montserrat', sans-serif; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -73,6 +73,13 @@
             <div id="cart-items" style="padding: 0 20px;"></div>
             
             <div id="checkout-form" style="display: none; padding-top: 10px;">
+                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Промокод</h2></div>
+                <div class="promo-container">
+                    <input type="text" id="promo-input" class="custom-input" placeholder="Введите код">
+                    <button class="promo-btn" onclick="applyPromo()">OK</button>
+                </div>
+                <p id="promo-msg" style="text-align: center; font-size: 12px; margin-top: -5px; margin-bottom: 15px; display: none;"></p>
+
                 <div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
                 <input type="text" id="order-name" class="custom-input" placeholder="Ваше имя">
                 <input type="tel" id="order-phone" class="custom-input" placeholder="Номер телефона (обязательно)">
@@ -103,17 +110,18 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // ОБНОВЛЕННЫЕ ДАННЫЕ С РЕАЛЬНЫМИ ФОТОГРАФИЯМИ
+    // ОБНОВИЛИ ССЫЛКУ НА ЗЕРКАЛО
     const products = [
         { id: 'sofa_lund', name: 'Диван Lund', price: 899, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'sofas' },
         { id: 'chair_mist', name: 'Кресло Mist', price: 279, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'chairs' },
         { id: 'bed_scandi', name: 'Кровать Scandi', price: 649, image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'beds' },
         { id: 'lamp_nordic', name: 'Лампа Nordic', price: 99, image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'lighting' },
-        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, image: 'https://images.unsplash.com/photo-1618220179428-22790b46a0eb?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'mirrors' }
+        { id: 'mirror_arch', name: 'Зеркало Arch', price: 189, image: 'https://images.unsplash.com/photo-1582582621959-48d27397dc69?ixlib=rb-1.2.1&auto=format&fit=crop&w=400&q=80', category: 'mirrors' }
     ];
 
     let cart = {};
     let currentCategory = 'all';
+    let discount = 0; // Переменная для скидки
 
     if (tg.initDataUnsafe.user) {
         document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
@@ -171,7 +179,6 @@
             const div = document.createElement('div');
             div.className = 'product-card';
             div.setAttribute('onclick', `addToCart('${p.id}')`);
-            // Вставляем тег <img> вместо эмодзи
             div.innerHTML = `
                 <img src="${p.image}" class="product-img" alt="${p.name}">
                 <div class="p-name">${p.name}</div>
@@ -201,7 +208,6 @@
                 if (!p) continue;
                 const itemDiv = document.createElement('div');
                 itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
-                // Картинка в корзине
                 itemDiv.innerHTML = `
                     <img src="${p.image}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 15px;">
                     <div style="flex-grow: 1;">
@@ -224,6 +230,8 @@
         } else {
             emptyMsg.style.display = 'block';
             checkoutForm.style.display = 'none';
+            discount = 0; // Сбрасываем скидку, если корзина пуста
+            document.getElementById('promo-msg').style.display = 'none';
         }
         
         updateMainButton();
@@ -235,6 +243,26 @@
         renderCart();
     }
 
+    // ЛОГИКА ПРОМОКОДА
+    function applyPromo() {
+        const code = document.getElementById('promo-input').value.trim().toUpperCase();
+        const msg = document.getElementById('promo-msg');
+        
+        if (code === 'FORMA10') {
+            discount = 0.10; // Скидка 10%
+            msg.style.color = 'green';
+            msg.innerText = 'Скидка 10% применена!';
+            tg.HapticFeedback.notificationOccurred('success');
+        } else {
+            discount = 0;
+            msg.style.color = 'var(--red)';
+            msg.innerText = 'Неверный промокод';
+            tg.HapticFeedback.notificationOccurred('error');
+        }
+        msg.style.display = 'block';
+        updateMainButton(); // Пересчитываем сумму
+    }
+
     function updateMainButton() {
         let total = 0;
         for (let id in cart) {
@@ -242,7 +270,9 @@
             if(p) total += p.price * cart[id];
         }
         if (total > 0) {
-            tg.MainButton.setText(`Оформить заказ: $ ${total}`);
+            // Применяем скидку
+            let finalTotal = total - (total * discount);
+            tg.MainButton.setText(`Оформить заказ: $ ${finalTotal.toFixed(2)}`);
             tg.MainButton.show();
         } else {
             tg.MainButton.hide();
@@ -265,9 +295,11 @@
             if(p) total += p.price * cart[id];
         }
         
+        let finalTotal = total - (total * discount);
+        
         const dataToSend = {
             products: cart,
-            totalPrice: total,
+            totalPrice: finalTotal, // Отправляем боту сумму уже со скидкой!
             customerName: name,
             customerPhone: phone,
             deliveryAddress: address
