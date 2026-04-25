@@ -32,7 +32,7 @@
         .page { display: none; animation: fadeIn 0.3s; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        #search-input { width: calc(100% - 40px); margin: 0 20px 20px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 16px; background: var(--accent); }
+        .custom-input { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -61,13 +61,21 @@
 
         <section id="search" class="page">
             <div class="section-header"><h2>Поиск</h2></div>
-            <input type="text" id="search-input" placeholder="Что вы ищете?" oninput="searchProducts()">
+            <input type="text" id="search-input" class="custom-input" placeholder="Что вы ищете?" oninput="searchProducts()">
             <div id="search-results" class="products-grid"></div>
         </section>
 
         <section id="cart" class="page">
             <div class="section-header"><h2>Корзина</h2></div>
             <div id="cart-items" style="padding: 0 20px;"></div>
+            
+            <div id="checkout-form" style="display: none; padding-top: 10px;">
+                <div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
+                <input type="text" id="order-name" class="custom-input" placeholder="Ваше имя">
+                <input type="tel" id="order-phone" class="custom-input" placeholder="Номер телефона (обязательно)">
+                <input type="text" id="order-address" class="custom-input" placeholder="Адрес доставки (или Самовывоз)">
+            </div>
+
             <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">
                 <div style="font-size: 60px; margin-bottom: 20px;">🛒</div>
                 <p>В корзине пока ничего нет</p>
@@ -92,7 +100,6 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // ДОБАВЛЕНО ПОЛЕ category К КАЖДОМУ ТОВАРУ
     const products = [
         { id: 'sofa_lund', name: 'Диван Lund', price: 899, icon: '🛋️', category: 'sofas' },
         { id: 'chair_mist', name: 'Кресло Mist', price: 279, icon: '🪑', category: 'chairs' },
@@ -103,6 +110,11 @@
 
     let cart = {};
     let currentCategory = 'all';
+
+    // Автоматически подставляем имя пользователя из Telegram
+    if (tg.initDataUnsafe.user) {
+        document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
+    }
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -117,13 +129,11 @@
         }
         if(pageId === 'cart') renderCart();
         if(pageId === 'home') {
-            // Возвращаем ту же категорию, которую смотрели до ухода
             if(currentCategory === 'all') render('grid', products);
             else render('grid', products.filter(p => p.category === currentCategory));
         }
     }
 
-    // НОВАЯ ФУНКЦИЯ ДЛЯ ФИЛЬТРАЦИИ КАТЕГОРИЙ
     function filterCategory(cat, el) {
         document.querySelectorAll('.cat-item').forEach(i => i.classList.remove('active'));
         el.classList.add('active');
@@ -137,10 +147,9 @@
             render('grid', filtered);
             document.getElementById('grid-title').innerText = el.innerText;
         }
-        tg.HapticFeedback.selectionChanged(); // Легкая вибрация при выборе
+        tg.HapticFeedback.selectionChanged();
     }
 
-    // РЕАЛИЗАЦИЯ ЖИВОГО ПОИСКА
     function searchProducts() {
         const query = document.getElementById('search-input').value.toLowerCase();
         const results = products.filter(p => p.name.toLowerCase().includes(query));
@@ -177,6 +186,7 @@
     function renderCart() {
         const container = document.getElementById('cart-items');
         const emptyMsg = document.getElementById('cart-empty');
+        const checkoutForm = document.getElementById('checkout-form');
         container.innerHTML = '';
         let hasItems = false;
         
@@ -202,7 +212,16 @@
                 container.appendChild(itemDiv);
             }
         }
-        emptyMsg.style.display = hasItems ? 'none' : 'block';
+        
+        // Показываем форму только если корзина не пуста
+        if (hasItems) {
+            emptyMsg.style.display = 'none';
+            checkoutForm.style.display = 'block';
+        } else {
+            emptyMsg.style.display = 'block';
+            checkoutForm.style.display = 'none';
+        }
+        
         updateMainButton();
     }
 
@@ -226,16 +245,34 @@
         }
     }
 
+    // ВАЛИДАЦИЯ ПЕРЕД ОТПРАВКОЙ
     tg.MainButton.onClick(() => {
+        const phone = document.getElementById('order-phone').value.trim();
+        const address = document.getElementById('order-address').value.trim() || 'Самовывоз';
+        const name = document.getElementById('order-name').value.trim() || 'Не указано';
+
+        if (!phone) {
+            tg.showAlert("Пожалуйста, укажите контактный номер телефона для связи.");
+            return;
+        }
+
         let total = 0;
         for (let id in cart) {
             const p = products.find(prod => prod.id === id);
             if(p) total += p.price * cart[id];
         }
-        tg.sendData(JSON.stringify({ products: cart, totalPrice: total }));
+        
+        const dataToSend = {
+            products: cart,
+            totalPrice: total,
+            customerName: name,
+            customerPhone: phone,
+            deliveryAddress: address
+        };
+        
+        tg.sendData(JSON.stringify(dataToSend));
     });
 
-    // Инициализация при старте (рендерим всё)
     render('grid', products);
 </script>
 </body>
