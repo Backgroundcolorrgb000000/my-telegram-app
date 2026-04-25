@@ -6,7 +6,10 @@ const http = require('http');
 const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/';
+
+// ТРЮК С КЭШЕМ: добавили ?v=1 в конец ссылки. 
+// Если снова закэшируется, поменяй на ?v=2 и т.д.
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=1';
 
 // Сервер для Railway
 const port = process.env.PORT || 3000;
@@ -41,7 +44,8 @@ bot.start((ctx) => {
 
 bot.on('web_app_data', async (ctx) => {
     try {
-        const data = JSON.parse(ctx.webAppData.data.json());
+        // ИСПРАВЛЕННАЯ СТРОКА: правильный путь к данным в Telegraf
+        const data = JSON.parse(ctx.message.web_app_data.data);
         const amount = Math.round(data.totalPrice || 0); 
         
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
