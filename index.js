@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// Увеличиваем версию для сброса кэша (на всякий случай)
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=3';
+// Версия v=4 для обновления интерфейса
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=4';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -52,7 +52,7 @@ bot.on('web_app_data', async (ctx) => {
             description: 'Оплата заказа',
             payload: JSON.stringify({ items: data.products }),
             provider_token: PAYMENT_TOKEN,
-            currency: 'UZS',
+            currency: 'USD', // Изменили валюту на доллары
             prices: [{ label: 'Товары', amount: amount * 100 }], 
             start_parameter: 'order-process'
         });
@@ -79,7 +79,7 @@ bot.on('successful_payment', async (ctx) => {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя клиента": ctx.from.first_name || "Клиент",
             "Адрес": "Заказ из каталога",
-            "Сумма (сум)": payment.total_amount / 100,
+            "Сумма ($)": payment.total_amount / 100, // Обновили заголовок для таблицы
             "Товары": itemsStr,
             "ID пользователя": String(userId)
         };
@@ -87,12 +87,11 @@ bot.on('successful_payment', async (ctx) => {
         await saveOrderToSheets(rowData);
         await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
 
-        // УВЕДОМЛЕНИЕ АДМИНУ С КНОПКАМИ
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${ctx.from.first_name}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
-                             `💵 <b>Сумма:</b> ${(payment.total_amount / 100).toLocaleString()} сум`;
+                             `💵 <b>Сумма:</b> $ ${payment.total_amount / 100}`; // Обновили значок
             
             await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
                 parse_mode: 'HTML',
@@ -109,7 +108,6 @@ bot.on('successful_payment', async (ctx) => {
     }
 });
 
-// ОБРАБОТКА НАЖАТИЯ КНОПОК АДМИНОМ
 bot.action(/accept_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
@@ -132,7 +130,7 @@ bot.action(/reject_(.+)/, async (ctx) => {
     }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен с пультом админа!'));
+bot.launch().then(() => console.log('🚀 Бот запущен с долларовыми ценами!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
