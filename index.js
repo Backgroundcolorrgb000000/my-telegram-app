@@ -8,7 +8,7 @@ const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_ID; 
 
 // Версия v=10 для сброса кэша
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=10';
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=11';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
