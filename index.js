@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// Версия v=8
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=9';
+// Версия v=10 для сброса кэша
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=10';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -17,9 +17,8 @@ http.createServer((req, res) => {
 }).listen(port);
 
 const bot = new Telegraf(token);
-const pendingOrders = new Map(); // Хранилище заказов для обхода лимита
+const pendingOrders = new Map();
 
-// Функция для работы с Google Таблицей
 async function getSheet() {
     const serviceAccountAuth = new JWT({
         email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -31,7 +30,6 @@ async function getSheet() {
     return doc;
 }
 
-// Сбор базы пользователей
 async function collectUser(ctx) {
     try {
         const doc = await getSheet();
@@ -45,18 +43,15 @@ async function collectUser(ctx) {
         }
     } catch (e) { console.error("Ошибка сбора базы:", e.message); }
 }
+
 bot.start(async (ctx) => {
     await collectUser(ctx);
     
-    // 🟢 НОВОЕ: Принудительно обновляем "синюю кнопку" (Меню) на свежую ссылку
+    // 🟢 УБИРАЕМ СИНЮЮ КНОПКУ МЕНЮ
     try {
-        await ctx.setChatMenuButton({
-            type: 'web_app',
-            text: 'Магазин мебели',
-            web_app: { url: webAppUrl }
-        });
+        await ctx.setChatMenuButton({ type: 'default' });
     } catch (e) {
-        console.error('Не удалось обновить синюю кнопку:', e.message);
+        console.error('Не удалось убрать синюю кнопку:', e.message);
     }
 
     ctx.reply('Добро пожаловать в FORMA! 🛋\nВаш персональный гид в мире современной мебели.', 
@@ -64,7 +59,6 @@ bot.start(async (ctx) => {
     );
 });
 
-// Админская рассылка
 bot.command('send', async (ctx) => {
     if (String(ctx.from.id) !== String(ADMIN_ID)) return;
     const msg = ctx.message.text.replace('/send', '').trim();
@@ -88,7 +82,6 @@ bot.command('send', async (ctx) => {
     } catch (e) { ctx.reply("Ошибка рассылки: " + e.message); }
 });
 
-// ОФОРМЛЕНИЕ ЗАКАЗА ЧЕРЕЗ ИНВОЙС
 bot.on('web_app_data', async (ctx) => {
     try {
         const data = JSON.parse(ctx.message.web_app_data.data);
@@ -96,14 +89,13 @@ bot.on('web_app_data', async (ctx) => {
         
         if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
 
-        // Запоминаем данные в память бота, чтобы не превысить лимит payload
         const orderId = `order_${Date.now()}`;
         pendingOrders.set(orderId, data);
 
         await ctx.replyWithInvoice({
             title: 'Оплата заказа FORMA',
             description: `Мебель: ${Object.keys(data.products).length} поз.`,
-            payload: orderId, // Отправляем только короткий номер!
+            payload: orderId,
             provider_token: PAYMENT_TOKEN,
             currency: 'USD',
             prices: [{ label: 'ИТОГО', amount: Math.round(amount * 100) }], 
@@ -118,14 +110,12 @@ bot.on('web_app_data', async (ctx) => {
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
 
-// ДЕЙСТВИЯ ПОСЛЕ УСПЕШНОЙ ОПЛАТЫ
 bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const orderId = payment.invoice_payload;
         const userId = ctx.from.id;
         
-        // Достаем полные данные о заказе
         const orderData = pendingOrders.get(orderId) || {};
         
         const itemsStr = Object.entries(orderData.products || {})
@@ -150,7 +140,7 @@ bot.on('successful_payment', async (ctx) => {
         await doc.sheetsByIndex[0].addRow(rowData);
         await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
 
-        pendingOrders.delete(orderId); // Очищаем память
+        pendingOrders.delete(orderId);
 
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
@@ -194,7 +184,7 @@ bot.action(/reject_(.+)/, async (ctx) => {
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Инвойсы + Рассылка активны)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 10)!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
