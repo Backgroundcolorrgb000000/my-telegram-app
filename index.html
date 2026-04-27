@@ -92,14 +92,12 @@
                 <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Доставка</h2></div>
                 <select id="delivery-method" class="custom-select" onchange="updateMainButton()">
                     <option value="0">Самовывоз (Бесплатно)</option>
-                    <option value="15">Стандартная доставка (+$15)</option>
-                    <option value="30">Экспресс-доставка (+$30)</option>
+                    <option value="15">Доставка (+$15)</option>
                 </select>
 
                 <div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
-                <input type="text" id="order-name" class="custom-input" placeholder="Ваше имя">
-                <input type="tel" id="order-phone" class="custom-input" placeholder="Телефон (обязательно)">
-                <input type="text" id="order-address" class="custom-input" placeholder="Адрес (город, улица, дом)">
+                <input type="tel" id="order-phone" class="custom-input" placeholder="Ваш телефон (обязательно)">
+                <input type="text" id="order-address" class="custom-input" placeholder="Адрес (если нужна доставка)">
             </div>
             <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">🛒<p>Пусто</p></div>
         </section>
@@ -149,11 +147,6 @@
     let cart = {};
     let currentCategory = 'all';
     let discount = 0;
-
-    // Вставляем имя при старте, если есть
-    if (tg.initDataUnsafe.user) {
-        document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
-    }
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -281,7 +274,7 @@
         }
         
         if (total > 0) {
-            // Умная кнопка
+            // Если клиент не в корзине - кнопка переносит его в корзину
             const isCartActive = document.getElementById('cart').classList.contains('active');
             if (isCartActive) {
                 let final = (total - (total * discount)) + (parseFloat(document.getElementById('delivery-method').value) || 0);
@@ -314,14 +307,12 @@
     }
 
     tg.MainButton.onClick(() => {
-        // Если мы не в корзине - переносим пользователя туда
         const isCartActive = document.getElementById('cart').classList.contains('active');
         if (!isCartActive) {
             nav('cart', document.querySelectorAll('.nav-item')[2]);
             return;
         }
 
-        // ВЕРНУЛАСЬ ВАЛИДАЦИЯ ТЕЛЕФОНА!
         const phone = document.getElementById('order-phone').value.trim();
         if (!phone) {
             tg.showAlert("Пожалуйста, укажите контактный номер телефона для связи.");
@@ -350,7 +341,6 @@
         const data = {
             products: cart,
             totalPrice: final,
-            customerName: document.getElementById('order-name').value || 'Не указано',
             customerPhone: phone,
             deliveryAddress: document.getElementById('order-address').value || 'Самовывоз',
             deliveryMethod: document.getElementById('delivery-method').options[document.getElementById('delivery-method').selectedIndex].text
