@@ -11,31 +11,43 @@
         body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
+        
+        /* Навигация категорий */
         .categories { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
         .cat-item { text-align: center; min-width: 70px; cursor: pointer; }
         .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; transition: 0.2s; }
         .cat-item.active .cat-icon { border-color: #000; background: #fff; transform: scale(1.05); }
         .cat-item p { font-size: 11px; margin: 0; }
+
         .section-header { display: flex; justify-content: space-between; padding: 20px; }
         .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
+
+        /* Сетка товаров */
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
         .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; }
         .product-card:active { transform: scale(0.95); }
         .product-img { width: 100%; height: 120px; object-fit: cover; border-radius: 15px; margin-bottom: 10px; display: block; background: #eee; }
         .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; height: 32px; overflow: hidden; }
-        .p-price { font-size: 14px; font-weight: 600; color: #000; }
+        .p-price { font-size: 14px; font-weight: 600; }
+
+        /* История заказов */
+        .history-item { background: var(--accent); border-radius: 20px; padding: 15px; margin: 0 20px 10px; text-align: left; border-left: 4px solid #000; }
+        .history-date { font-size: 11px; color: var(--hint); margin-bottom: 5px; }
+        .history-total { font-weight: 600; margin-top: 5px; }
+
+        /* Навигация */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
         .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; transition: 0.2s; }
         .nav-item.active { color: #000; }
         .nav-item div { font-size: 22px; }
         .nav-item p { font-size: 10px; margin: 4px 0 0; }
+
         .page { display: none; }
         .page.active { display: block; animation: fadeIn 0.3s; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
         .custom-input, .custom-select { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
-        .promo-container { display: flex; gap: 10px; margin: 0 15px 15px; }
-        .promo-container input { margin: 0; flex-grow: 1; width: auto; }
-        .promo-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 15px; padding: 0 20px; font-family: 'Montserrat', sans-serif; cursor: pointer; }
+        .about-img { width: 100%; height: 200px; object-fit: cover; border-radius: 0 0 30px 30px; }
     </style>
 </head>
 <body>
@@ -57,7 +69,6 @@
                 <div class="cat-item" onclick="filterCategory('beds', this)"><div class="cat-icon">🛏️</div><p>Кровати</p></div>
                 <div class="cat-item" onclick="filterCategory('mirrors', this)"><div class="cat-icon">🪞</div><p>Зеркала</p></div>
             </div>
-            
             <div class="section-header"><h2 id="grid-title">Популярное</h2></div>
             <div id="grid" class="products-grid"></div>
         </section>
@@ -71,39 +82,39 @@
         <section id="cart" class="page">
             <div class="section-header"><h2>Корзина</h2></div>
             <div id="cart-items" style="padding: 0 20px;"></div>
-            
             <div id="checkout-form" style="display: none; padding-top: 10px;">
-                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Промокод</h2></div>
-                <div class="promo-container">
-                    <input type="text" id="promo-input" class="custom-input" placeholder="Код (например, FORMA10)">
-                    <button class="promo-btn" onclick="applyPromo()">OK</button>
-                </div>
-                <p id="promo-msg" style="text-align: center; font-size: 12px; margin-top: -5px; margin-bottom: 15px; display: none;"></p>
-
-                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Доставка</h2></div>
+                <input type="text" id="promo-input" class="custom-input" placeholder="Промокод">
                 <select id="delivery-method" class="custom-select" onchange="updateMainButton()">
                     <option value="0">Самовывоз (Бесплатно)</option>
-                    <option value="15">Стандартная доставка (+$15)</option>
-                    <option value="30">Экспресс-доставка (+$30)</option>
+                    <option value="15">Доставка (+$15)</option>
                 </select>
-
-                <div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
-                <input type="text" id="order-name" class="custom-input" placeholder="Ваше имя">
+                <input type="text" id="order-name" class="custom-input" placeholder="Имя">
                 <input type="tel" id="order-phone" class="custom-input" placeholder="Телефон">
-                <input type="text" id="order-address" class="custom-input" placeholder="Адрес (город, улица, дом)">
+                <input type="text" id="order-address" class="custom-input" placeholder="Адрес">
             </div>
-
-            <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">
-                <div style="font-size: 60px; margin-bottom: 20px;">🛒</div>
-                <p>Ваша корзина пуста</p>
-            </div>
+            <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">🛒<p>Пусто</p></div>
         </section>
 
-        <section id="profile" class="page" style="text-align: center; padding-top: 40px;">
-            <div style="width: 100px; height: 100px; background: var(--accent); border-radius: 50%; margin: 0 auto 20px; font-size: 50px; display: flex; align-items: center; justify-content: center;">👤</div>
-            <h2 id="u-name">Клиент</h2>
-            <p id="u-id" style="color: var(--hint);">ID: ---</p>
-            <p style="padding: 20px; color: var(--hint); font-size: 12px;">Здесь будет история ваших заказов</p>
+        <section id="profile" class="page">
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="width: 80px; height: 80px; background: var(--accent); border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center; font-size: 30px;">👤</div>
+                <h2 id="u-name">Клиент</h2>
+            </div>
+            <div class="section-header"><h2>Мои заказы</h2></div>
+            <div id="history-list"></div>
+        </section>
+
+        <section id="about" class="page">
+            <img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80" class="about-img">
+            <div style="padding: 25px;">
+                <h2 style="margin-top: 0;">FORMA Studio</h2>
+                <p style="line-height: 1.6; color: #444;">Мы создаем мебель, которая меняет пространство. Наша философия — это сочетание скандинавского минимализма и исключительного комфорта.</p>
+                <div style="background: var(--accent); padding: 20px; border-radius: 20px; margin-top: 20px;">
+                    <div style="margin-bottom: 10px;"><b>📍 Адрес:</b> г. Ташкент, ул. Интерьерная, 12</div>
+                    <div style="margin-bottom: 10px;"><b>📞 Телефон:</b> +998 90 123-45-67</div>
+                    <div><b>🕒 Работаем:</b> 10:00 - 20:00</div>
+                </div>
+            </div>
         </section>
     </main>
 
@@ -112,43 +123,46 @@
         <div class="nav-item" onclick="nav('search', this)"><div>🔍</div><p>Поиск</p></div>
         <div class="nav-item" onclick="nav('cart', this)"><div>🛒</div><p>Корзина</p></div>
         <div class="nav-item" onclick="nav('profile', this)"><div>👤</div><p>Профиль</p></div>
+        <div class="nav-item" onclick="nav('about', this)"><div>✨</div><p>О нас</p></div>
     </nav>
 
 <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // СПИСОК РЕАЛЬНЫХ ТОВАРОВ (МОЖНО МЕНЯТЬ ЦЕНЫ И ССЫЛКИ)
     const products = [
         { id: 'sofa_classic', name: 'Диван "Classic Velvet"', price: 1200, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80', category: 'sofas' },
-        { id: 'sofa_modern', name: 'Модульный диван "Loft"', price: 1550, image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?auto=format&fit=crop&w=400&q=80', category: 'sofas' },
         { id: 'chair_wood', name: 'Кресло "Scandi Oak"', price: 450, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=400&q=80', category: 'chairs' },
-        { id: 'chair_office', name: 'Кресло "Boss Black"', price: 320, image: 'https://images.unsplash.com/photo-1505843490701-5be5d0b19d58?auto=format&fit=crop&w=400&q=80', category: 'chairs' },
         { id: 'bed_king', name: 'Кровать "Grand Hotel"', price: 1800, image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=400&q=80', category: 'beds' },
         { id: 'mirror_gold', name: 'Зеркало "Royal Gold"', price: 210, image: 'https://images.unsplash.com/photo-1582582621959-48d27397dc69?auto=format&fit=crop&w=400&q=80', category: 'mirrors' }
     ];
 
     let cart = {};
     let currentCategory = 'all';
-    let discount = 0;
-
-    if (tg.initDataUnsafe.user) {
-        document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
-    }
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        const targetPage = document.getElementById(pageId);
-        if (targetPage) targetPage.classList.add('active');
+        document.getElementById(pageId).classList.add('active');
         if (el) el.classList.add('active');
         
-        if(pageId === 'profile' && tg.initDataUnsafe.user) {
-            document.getElementById('u-name').innerText = tg.initDataUnsafe.user.first_name;
-            document.getElementById('u-id').innerText = 'ID: ' + tg.initDataUnsafe.user.id;
+        if(pageId === 'profile') {
+            document.getElementById('u-name').innerText = tg.initDataUnsafe.user?.first_name || 'Клиент';
+            renderHistory();
         }
-        if(pageId === 'cart') renderCart();
         if(pageId === 'home') render('grid', currentCategory === 'all' ? products : products.filter(p => p.category === currentCategory));
+    }
+
+    function render(containerId, items) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        items.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'product-card';
+            div.onclick = () => addToCart(p.id);
+            div.innerHTML = `<img src="${p.image}" class="product-img"><div class="p-name">${p.name}</div><div class="p-price">$ ${p.price}</div>`;
+            container.appendChild(div);
+        });
     }
 
     function filterCategory(cat, el) {
@@ -156,97 +170,11 @@
         el.classList.add('active');
         currentCategory = cat;
         render('grid', cat === 'all' ? products : products.filter(p => p.category === cat));
-        document.getElementById('grid-title').innerText = el.innerText;
-        tg.HapticFeedback.selectionChanged();
-    }
-
-    function searchProducts() {
-        const query = document.getElementById('search-input').value.toLowerCase();
-        const results = products.filter(p => p.name.toLowerCase().includes(query));
-        render('search-results', results);
-    }
-
-    function render(containerId, items) {
-        const container = document.getElementById(containerId);
-        if(!container) return;
-        container.innerHTML = '';
-        if(items.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:var(--hint); grid-column:span 2; padding: 20px;">Товары не найдены</p>';
-            return;
-        }
-        items.forEach(p => {
-            const div = document.createElement('div');
-            div.className = 'product-card';
-            div.setAttribute('onclick', `addToCart('${p.id}')`);
-            div.innerHTML = `
-                <img src="${p.image}" class="product-img" alt="${p.name}">
-                <div class="p-name">${p.name}</div>
-                <div class="p-price">$ ${p.price}</div>
-            `;
-            container.appendChild(div);
-        });
     }
 
     function addToCart(id) {
         cart[id] = (cart[id] || 0) + 1;
         tg.HapticFeedback.notificationOccurred('success');
-        updateMainButton();
-    }
-
-    function renderCart() {
-        const container = document.getElementById('cart-items');
-        const emptyMsg = document.getElementById('cart-empty');
-        const checkoutForm = document.getElementById('checkout-form');
-        container.innerHTML = '';
-        let hasItems = false;
-        
-        for (let id in cart) {
-            if (cart[id] > 0) {
-                hasItems = true;
-                const p = products.find(prod => prod.id === id);
-                if (!p) continue;
-                const itemDiv = document.createElement('div');
-                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
-                itemDiv.innerHTML = `
-                    <img src="${p.image}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 15px;">
-                    <div style="flex-grow: 1;">
-                        <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
-                        <div style="font-size: 12px; color: var(--hint);">$ ${p.price}</div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button>
-                        <span>${cart[id]}</span>
-                        <button onclick="changeQty('${id}', 1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">+</button>
-                    </div>
-                `;
-                container.appendChild(itemDiv);
-            }
-        }
-        
-        emptyMsg.style.display = hasItems ? 'none' : 'block';
-        checkoutForm.style.display = hasItems ? 'block' : 'none';
-        updateMainButton();
-    }
-
-    function changeQty(id, delta) {
-        cart[id] = (cart[id] || 0) + delta;
-        if (cart[id] < 0) cart[id] = 0;
-        renderCart();
-    }
-
-    function applyPromo() {
-        const code = document.getElementById('promo-input').value.trim().toUpperCase();
-        const msg = document.getElementById('promo-msg');
-        if (code === 'FORMA10') {
-            discount = 0.10;
-            msg.style.color = 'green';
-            msg.innerText = 'Скидка 10% применена!';
-        } else {
-            discount = 0;
-            msg.style.color = 'var(--red)';
-            msg.innerText = 'Неверный код';
-        }
-        msg.style.display = 'block';
         updateMainButton();
     }
 
@@ -257,32 +185,59 @@
             if(p) total += p.price * cart[id];
         }
         if (total > 0) {
-            let finalTotal = (total - (total * discount)) + (parseFloat(document.getElementById('delivery-method').value) || 0);
-            tg.MainButton.setText(`КУПИТЬ: $ ${finalTotal.toFixed(2)}`);
+            let final = total + (parseFloat(document.getElementById('delivery-method').value) || 0);
+            tg.MainButton.setText(`ОПЛАТИТЬ: $ ${final.toFixed(2)}`);
             tg.MainButton.show();
-        } else {
-            tg.MainButton.hide();
-        }
+        } else tg.MainButton.hide();
+    }
+
+    // ЛОГИКА ИСТОРИИ (СОХРАНЕНИЕ ЛОКАЛЬНО)
+    function saveOrderToLocal(order) {
+        let history = JSON.parse(localStorage.getItem('forma_history')) || [];
+        history.unshift(order);
+        localStorage.setItem('forma_history', JSON.stringify(history.slice(0, 10))); // Храним последние 10
+    }
+
+    function renderHistory() {
+        const list = document.getElementById('history-list');
+        const history = JSON.parse(localStorage.getItem('forma_history')) || [];
+        list.innerHTML = history.length ? '' : '<p style="text-align:center;color:var(--hint);">У вас пока нет заказов</p>';
+        history.forEach(h => {
+            const div = document.createElement('div');
+            div.className = 'history-item';
+            div.innerHTML = `<div class="history-date">${h.date}</div><div>${h.items}</div><div class="history-total">Итого: $ ${h.total}</div>`;
+            list.appendChild(div);
+        });
     }
 
     tg.MainButton.onClick(() => {
-        const phone = document.getElementById('order-phone').value.trim();
-        if (!phone) { tg.showAlert("Укажите номер телефона"); return; }
-        
         let total = 0;
+        let itemsStr = [];
         for (let id in cart) {
             const p = products.find(prod => prod.id === id);
-            if(p) total += p.price * cart[id];
+            if(p && cart[id] > 0) {
+                total += p.price * cart[id];
+                itemsStr.push(`${p.name} (x${cart[id]})`);
+            }
         }
+        const delivery = parseFloat(document.getElementById('delivery-method').value) || 0;
+        const final = total + delivery;
 
-        const deliverySelect = document.getElementById('delivery-method');
+        const order = {
+            date: new Date().toLocaleString(),
+            items: itemsStr.join(', '),
+            total: final.toFixed(2)
+        };
+        
+        saveOrderToLocal(order); // Сохраняем в историю телефона
+
         const data = {
             products: cart,
-            totalPrice: (total - (total * discount)) + (parseFloat(deliverySelect.value) || 0),
+            totalPrice: final,
             customerName: document.getElementById('order-name').value,
-            customerPhone: phone,
+            customerPhone: document.getElementById('order-phone').value,
             deliveryAddress: document.getElementById('order-address').value || 'Самовывоз',
-            deliveryMethod: deliverySelect.options[deliverySelect.selectedIndex].text
+            deliveryMethod: document.getElementById('delivery-method').options[document.getElementById('delivery-method').selectedIndex].text
         };
         tg.sendData(JSON.stringify(data));
     });
