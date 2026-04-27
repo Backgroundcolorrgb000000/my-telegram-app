@@ -7,7 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=11';
+// 🟢 ВЕРСИЯ 12 - Принудительный сброс кэша!
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=12';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -46,12 +47,10 @@ async function collectUser(ctx) {
 bot.start(async (ctx) => {
     await collectUser(ctx);
     
-    // Пытаемся удалить синюю кнопку через код
+    // Прячем синюю кнопку
     try {
         await ctx.setChatMenuButton({ type: 'default' });
-    } catch (e) {
-        console.error('Не удалось убрать синюю кнопку:', e.message);
-    }
+    } catch (e) {}
 
     ctx.reply('Добро пожаловать в FORMA! 🛋\nВаш персональный гид в мире современной мебели.', 
         Markup.keyboard([[Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]]).resize()
@@ -70,7 +69,6 @@ bot.command('send', async (ctx) => {
         let count = 0;
 
         ctx.reply(`📢 Начинаю рассылку на ${rows.length} чел...`);
-
         for (const row of rows) {
             try {
                 await bot.telegram.sendMessage(row.get("ID"), msg);
@@ -116,7 +114,6 @@ bot.on('successful_payment', async (ctx) => {
         const userId = ctx.from.id;
         
         const orderData = pendingOrders.get(orderId) || {};
-        
         const itemsStr = Object.entries(orderData.products || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
@@ -125,10 +122,10 @@ bot.on('successful_payment', async (ctx) => {
         const cDelivery = orderData.deliveryMethod || "Не указана";
         const cAddress = orderData.deliveryAddress || "Не указан";
         
-        // 🟢 ИМЯ БЕРЕМ СТРОГО ИЗ TELEGRAM (ID КЛИЕНТА)
+        // 🟢 Берем имя строго из Telegram аккаунта
         const tgName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
 
-        // 🟢 НОВАЯ СТРУКТУРА ДЛЯ ТАБЛИЦЫ
+        // 🟢 Новая структура записи в таблицу
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя": tgName,
@@ -142,7 +139,6 @@ bot.on('successful_payment', async (ctx) => {
         const doc = await getSheet();
         await doc.sheetsByIndex[0].addRow(rowData);
         await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
-
         pendingOrders.delete(orderId);
 
         if (ADMIN_ID) {
@@ -164,15 +160,13 @@ bot.on('successful_payment', async (ctx) => {
                 ])
             });
         }
-    } catch (e) {
-        console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message);
-    }
+    } catch (e) { console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message); }
 });
 
 bot.action(/accept_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
-        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер скоро свяжется с вами для уточнения деталей.", { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер свяжется с вами.", { parse_mode: 'HTML' });
         await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🟢 <b>СТАТУС: ПРИНЯТ</b>", { parse_mode: 'HTML' });
         await ctx.answerCbQuery("Заказ принят!");
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
@@ -181,13 +175,12 @@ bot.action(/accept_(.+)/, async (ctx) => {
 bot.action(/reject_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
-        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, ваш заказ отменен.</b>\nЕсли у вас есть вопросы, пожалуйста, напишите в поддержку.", { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, ваш заказ отменен.</b>\nДеньги будут возвращены.", { parse_mode: 'HTML' });
         await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🔴 <b>СТАТУС: ОТКЛОНЕН</b>", { parse_mode: 'HTML' });
         await ctx.answerCbQuery("Заказ отклонен.");
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Новая таблица + удаление кнопки)!'));
-
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 12)!'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
