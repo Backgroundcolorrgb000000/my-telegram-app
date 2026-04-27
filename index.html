@@ -44,6 +44,8 @@
         
         .custom-input, .custom-select { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
         .about-img { width: 100%; height: 200px; object-fit: cover; border-radius: 0 0 30px 30px; }
+        .promo-container { display: flex; gap: 10px; margin: 0 15px 15px; }
+        .promo-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 15px; padding: 0 20px; font-family: 'Montserrat', sans-serif; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -51,7 +53,7 @@
         <div class="logo">FORMA</div>
         <div style="display: flex; gap: 15px;">
             <span onclick="nav('search')" style="cursor:pointer">🔍</span>
-            <span onclick="nav('cart')" style="cursor:pointer">👜</span>
+            <span onclick="nav('cart', document.querySelectorAll('.nav-item')[2])" style="cursor:pointer">👜</span>
         </div>
     </header>
 
@@ -78,15 +80,26 @@
         <section id="cart" class="page">
             <div class="section-header"><h2>Корзина</h2></div>
             <div id="cart-items" style="padding: 0 20px;"></div>
+            
             <div id="checkout-form" style="display: none; padding-top: 10px;">
-                <input type="text" id="promo-input" class="custom-input" placeholder="Промокод">
+                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Промокод</h2></div>
+                <div class="promo-container">
+                    <input type="text" id="promo-input" class="custom-input" style="margin: 0; flex-grow: 1; width: auto;" placeholder="Код (например, FORMA10)">
+                    <button class="promo-btn" onclick="applyPromo()">OK</button>
+                </div>
+                <p id="promo-msg" style="text-align: center; font-size: 12px; margin-top: -5px; margin-bottom: 15px; display: none;"></p>
+
+                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Доставка</h2></div>
                 <select id="delivery-method" class="custom-select" onchange="updateMainButton()">
                     <option value="0">Самовывоз (Бесплатно)</option>
-                    <option value="15">Доставка (+$15)</option>
+                    <option value="15">Стандартная доставка (+$15)</option>
+                    <option value="30">Экспресс-доставка (+$30)</option>
                 </select>
-                <input type="text" id="order-name" class="custom-input" placeholder="Имя">
-                <input type="tel" id="order-phone" class="custom-input" placeholder="Телефон">
-                <input type="text" id="order-address" class="custom-input" placeholder="Адрес">
+
+                <div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
+                <input type="text" id="order-name" class="custom-input" placeholder="Ваше имя">
+                <input type="tel" id="order-phone" class="custom-input" placeholder="Телефон (обязательно)">
+                <input type="text" id="order-address" class="custom-input" placeholder="Адрес (город, улица, дом)">
             </div>
             <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">🛒<p>Пусто</p></div>
         </section>
@@ -135,6 +148,12 @@
 
     let cart = {};
     let currentCategory = 'all';
+    let discount = 0;
+
+    // Вставляем имя при старте, если есть
+    if (tg.initDataUnsafe.user) {
+        document.getElementById('order-name').value = tg.initDataUnsafe.user.first_name || '';
+    }
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -143,17 +162,23 @@
         if (el) el.classList.add('active');
         
         if(pageId === 'profile') {
-            // 🟢 ИСПРАВЛЕНИЕ: Безопасное чтение имени, чтобы избежать белого экрана
             const user = tg.initDataUnsafe.user;
             document.getElementById('u-name').innerText = (user && user.first_name) ? user.first_name : 'Клиент';
             renderHistory();
         }
+        if(pageId === 'cart') renderCart();
         if(pageId === 'home') render('grid', currentCategory === 'all' ? products : products.filter(p => p.category === currentCategory));
+        
+        updateMainButton();
     }
 
     function render(containerId, items) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
+        if(items.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:var(--hint); grid-column:span 2;">Ничего не найдено</p>';
+            return;
+        }
         items.forEach(p => {
             const div = document.createElement('div');
             div.className = 'product-card';
@@ -170,9 +195,81 @@
         render('grid', cat === 'all' ? products : products.filter(p => p.category === cat));
     }
 
+    function searchProducts() {
+        const query = document.getElementById('search-input').value.toLowerCase();
+        const results = products.filter(p => p.name.toLowerCase().includes(query));
+        render('search-results', results);
+    }
+
     function addToCart(id) {
         cart[id] = (cart[id] || 0) + 1;
         tg.HapticFeedback.notificationOccurred('success');
+        updateMainButton();
+    }
+
+    function changeQty(id, delta) {
+        cart[id] = (cart[id] || 0) + delta;
+        if (cart[id] < 0) cart[id] = 0;
+        renderCart();
+    }
+
+    function applyPromo() {
+        const code = document.getElementById('promo-input').value.trim().toUpperCase();
+        const msg = document.getElementById('promo-msg');
+        if (code === 'FORMA10') {
+            discount = 0.10;
+            msg.style.color = 'green';
+            msg.innerText = 'Скидка 10% применена!';
+            tg.HapticFeedback.notificationOccurred('success');
+        } else {
+            discount = 0;
+            msg.style.color = 'var(--red)';
+            msg.innerText = 'Неверный код';
+            tg.HapticFeedback.notificationOccurred('error');
+        }
+        msg.style.display = 'block';
+        updateMainButton();
+    }
+
+    function renderCart() {
+        const container = document.getElementById('cart-items');
+        const emptyMsg = document.getElementById('cart-empty');
+        const checkoutForm = document.getElementById('checkout-form');
+        container.innerHTML = '';
+        let hasItems = false;
+        
+        for (let id in cart) {
+            if (cart[id] > 0) {
+                hasItems = true;
+                const p = products.find(prod => prod.id === id);
+                if (!p) continue;
+                const itemDiv = document.createElement('div');
+                itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
+                itemDiv.innerHTML = `
+                    <img src="${p.image}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 15px;">
+                    <div style="flex-grow: 1;">
+                        <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
+                        <div style="font-size: 12px; color: var(--hint);">$ ${p.price}</div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button>
+                        <span>${cart[id]}</span>
+                        <button onclick="changeQty('${id}', 1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">+</button>
+                    </div>
+                `;
+                container.appendChild(itemDiv);
+            }
+        }
+        
+        if (hasItems) {
+            emptyMsg.style.display = 'none';
+            checkoutForm.style.display = 'block';
+        } else {
+            emptyMsg.style.display = 'block';
+            checkoutForm.style.display = 'none';
+            discount = 0;
+            document.getElementById('promo-msg').style.display = 'none';
+        }
         updateMainButton();
     }
 
@@ -182,11 +279,20 @@
             const p = products.find(prod => prod.id === id);
             if(p) total += p.price * cart[id];
         }
+        
         if (total > 0) {
-            let final = total + (parseFloat(document.getElementById('delivery-method').value) || 0);
-            tg.MainButton.setText(`ОПЛАТИТЬ: $ ${final.toFixed(2)}`);
+            // Умная кнопка
+            const isCartActive = document.getElementById('cart').classList.contains('active');
+            if (isCartActive) {
+                let final = (total - (total * discount)) + (parseFloat(document.getElementById('delivery-method').value) || 0);
+                tg.MainButton.setText(`ОПЛАТИТЬ: $ ${final.toFixed(2)}`);
+            } else {
+                tg.MainButton.setText(`В КОРЗИНУ (${total} $)`);
+            }
             tg.MainButton.show();
-        } else tg.MainButton.hide();
+        } else {
+            tg.MainButton.hide();
+        }
     }
 
     function saveOrderToLocal(order) {
@@ -208,6 +314,20 @@
     }
 
     tg.MainButton.onClick(() => {
+        // Если мы не в корзине - переносим пользователя туда
+        const isCartActive = document.getElementById('cart').classList.contains('active');
+        if (!isCartActive) {
+            nav('cart', document.querySelectorAll('.nav-item')[2]);
+            return;
+        }
+
+        // ВЕРНУЛАСЬ ВАЛИДАЦИЯ ТЕЛЕФОНА!
+        const phone = document.getElementById('order-phone').value.trim();
+        if (!phone) {
+            tg.showAlert("Пожалуйста, укажите контактный номер телефона для связи.");
+            return;
+        }
+
         let total = 0;
         let itemsStr = [];
         for (let id in cart) {
@@ -218,21 +338,20 @@
             }
         }
         const delivery = parseFloat(document.getElementById('delivery-method').value) || 0;
-        const final = total + delivery;
+        const final = (total - (total * discount)) + delivery;
 
         const order = {
             date: new Date().toLocaleString(),
             items: itemsStr.join(', '),
             total: final.toFixed(2)
         };
-        
         saveOrderToLocal(order);
 
         const data = {
             products: cart,
             totalPrice: final,
-            customerName: document.getElementById('order-name').value,
-            customerPhone: document.getElementById('order-phone').value,
+            customerName: document.getElementById('order-name').value || 'Не указано',
+            customerPhone: phone,
             deliveryAddress: document.getElementById('order-address').value || 'Самовывоз',
             deliveryMethod: document.getElementById('delivery-method').options[document.getElementById('delivery-method').selectedIndex].text
         };
