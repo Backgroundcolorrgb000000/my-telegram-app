@@ -8,7 +8,7 @@ const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN;
 const ADMIN_ID = process.env.ADMIN_ID; 
 
 // Версия v=8
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=8';
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=9';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -45,9 +45,20 @@ async function collectUser(ctx) {
         }
     } catch (e) { console.error("Ошибка сбора базы:", e.message); }
 }
-
 bot.start(async (ctx) => {
     await collectUser(ctx);
+    
+    // 🟢 НОВОЕ: Принудительно обновляем "синюю кнопку" (Меню) на свежую ссылку
+    try {
+        await ctx.setChatMenuButton({
+            type: 'web_app',
+            text: 'Магазин мебели',
+            web_app: { url: webAppUrl }
+        });
+    } catch (e) {
+        console.error('Не удалось обновить синюю кнопку:', e.message);
+    }
+
     ctx.reply('Добро пожаловать в FORMA! 🛋\nВаш персональный гид в мире современной мебели.', 
         Markup.keyboard([[Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]]).resize()
     );
