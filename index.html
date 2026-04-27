@@ -12,7 +12,6 @@
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
         
-        /* Навигация категорий */
         .categories { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
         .cat-item { text-align: center; min-width: 70px; cursor: pointer; }
         .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; transition: 0.2s; }
@@ -22,7 +21,6 @@
         .section-header { display: flex; justify-content: space-between; padding: 20px; }
         .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
 
-        /* Сетка товаров */
         .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
         .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; }
         .product-card:active { transform: scale(0.95); }
@@ -30,12 +28,10 @@
         .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; height: 32px; overflow: hidden; }
         .p-price { font-size: 14px; font-weight: 600; }
 
-        /* История заказов */
         .history-item { background: var(--accent); border-radius: 20px; padding: 15px; margin: 0 20px 10px; text-align: left; border-left: 4px solid #000; }
         .history-date { font-size: 11px; color: var(--hint); margin-bottom: 5px; }
         .history-total { font-weight: 600; margin-top: 5px; }
 
-        /* Навигация */
         .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
         .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; transition: 0.2s; }
         .nav-item.active { color: #000; }
@@ -147,7 +143,9 @@
         if (el) el.classList.add('active');
         
         if(pageId === 'profile') {
-            document.getElementById('u-name').innerText = tg.initDataUnsafe.user?.first_name || 'Клиент';
+            // 🟢 ИСПРАВЛЕНИЕ: Безопасное чтение имени, чтобы избежать белого экрана
+            const user = tg.initDataUnsafe.user;
+            document.getElementById('u-name').innerText = (user && user.first_name) ? user.first_name : 'Клиент';
             renderHistory();
         }
         if(pageId === 'home') render('grid', currentCategory === 'all' ? products : products.filter(p => p.category === currentCategory));
@@ -191,11 +189,10 @@
         } else tg.MainButton.hide();
     }
 
-    // ЛОГИКА ИСТОРИИ (СОХРАНЕНИЕ ЛОКАЛЬНО)
     function saveOrderToLocal(order) {
         let history = JSON.parse(localStorage.getItem('forma_history')) || [];
         history.unshift(order);
-        localStorage.setItem('forma_history', JSON.stringify(history.slice(0, 10))); // Храним последние 10
+        localStorage.setItem('forma_history', JSON.stringify(history.slice(0, 10)));
     }
 
     function renderHistory() {
@@ -229,7 +226,7 @@
             total: final.toFixed(2)
         };
         
-        saveOrderToLocal(order); // Сохраняем в историю телефона
+        saveOrderToLocal(order);
 
         const data = {
             products: cart,
