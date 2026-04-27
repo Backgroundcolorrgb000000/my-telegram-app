@@ -7,7 +7,6 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// Версия v=10 для сброса кэша
 const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=11';
 
 const port = process.env.PORT || 3000;
@@ -47,7 +46,7 @@ async function collectUser(ctx) {
 bot.start(async (ctx) => {
     await collectUser(ctx);
     
-    // 🟢 УБИРАЕМ СИНЮЮ КНОПКУ МЕНЮ
+    // Пытаемся удалить синюю кнопку через код
     try {
         await ctx.setChatMenuButton({ type: 'default' });
     } catch (e) {
@@ -122,14 +121,18 @@ bot.on('successful_payment', async (ctx) => {
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
-        const cName = orderData.customerName || ctx.from.first_name;
         const cPhone = orderData.customerPhone || "Не указан";
         const cDelivery = orderData.deliveryMethod || "Не указана";
         const cAddress = orderData.deliveryAddress || "Не указан";
+        
+        // 🟢 ИМЯ БЕРЕМ СТРОГО ИЗ TELEGRAM (ID КЛИЕНТА)
+        const tgName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
 
+        // 🟢 НОВАЯ СТРУКТУРА ДЛЯ ТАБЛИЦЫ
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
-            "Имя клиента": `${cName} (${cPhone})`,
+            "Имя": tgName,
+            "Телефон": cPhone,
             "Адрес": `${cDelivery} - ${cAddress}`,
             "Сумма ($)": payment.total_amount / 100,
             "Товары": itemsStr || "Товары",
@@ -144,7 +147,7 @@ bot.on('successful_payment', async (ctx) => {
 
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
-                             `👤 <b>Клиент:</b> ${cName}\n` +
+                             `👤 <b>Клиент:</b> ${tgName}\n` +
                              `📞 <b>Телефон:</b> ${cPhone}\n` +
                              `🚚 <b>Доставка:</b> ${cDelivery}\n` +
                              `📍 <b>Адрес:</b> ${cAddress}\n` +
@@ -184,7 +187,7 @@ bot.action(/reject_(.+)/, async (ctx) => {
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 10)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Новая таблица + удаление кнопки)!'));
 
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
