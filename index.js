@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// 🟢 ВЕРСИЯ 15 - Исправление оплаты и кэша
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=15';
+// 🟢 ВЕРСИЯ 16 - Полный функционал
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=16';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -47,11 +47,8 @@ async function collectUser(ctx) {
 bot.start(async (ctx) => {
     await collectUser(ctx);
     
-    // Пытаемся сбросить меню на стандартное
     try { await ctx.setChatMenuButton({ type: 'default' }); } catch (e) {}
 
-    // 🟢 ВАЖНО: Используем Reply Keyboard (клавиатурную кнопку). 
-    // Только через неё работает tg.sendData() для оформления заказа.
     ctx.reply(
         'Добро пожаловать в FORMA! 🛋\nИспользуйте кнопку ниже для входа в каталог и оформления заказов.', 
         Markup.keyboard([
@@ -112,6 +109,7 @@ bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const orderId = payment.invoice_payload;
+        const userId = ctx.from.id;
         const orderData = pendingOrders.get(orderId) || {};
         
         const itemsStr = Object.entries(orderData.products || {})
@@ -127,14 +125,15 @@ bot.on('successful_payment', async (ctx) => {
             "Адрес": `${orderData.deliveryMethod} - ${orderData.deliveryAddress}`,
             "Сумма ($)": payment.total_amount / 100,
             "Товары": itemsStr || "Товары",
-            "ID пользователя": String(ctx.from.id)
+            "ID пользователя": String(userId)
         };
 
         const doc = await getSheet();
         await doc.sheetsByIndex[0].addRow(rowData);
-        await ctx.reply("✨ Оплата прошла успешно!");
+        await ctx.reply("✨ Оплата прошла успешно! Ваш заказ в обработке.");
         pendingOrders.delete(orderId);
 
+        // УВЕДОМЛЕНИЕ АДМИНУ С КНОПКАМИ
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${tgName}\n` +
@@ -143,9 +142,39 @@ bot.on('successful_payment', async (ctx) => {
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Итого:</b> $ ${payment.total_amount / 100}`;
             
-            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, { parse_mode: 'HTML', disable_web_page_preview: true });
+            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, { 
+                parse_mode: 'HTML', 
+                disable_web_page_preview: true,
+                ...Markup.inlineKeyboard([
+                    [
+                        Markup.button.callback('✅ Принять', `accept_${userId}`),
+                        Markup.button.callback('❌ Отклонить', `reject_${userId}`)
+                    ]
+                ])
+            });
         }
     } catch (e) { console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 15)!'));
+// ОБРАБОТЧИКИ КНОПОК АДМИНА
+bot.action(/accept_(.+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    try {
+        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер скоро свяжется с вами.", { parse_mode: 'HTML' });
+        await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🟢 <b>СТАТУС: ПРИНЯТ</b>", { parse_mode: 'HTML' });
+        await ctx.answerCbQuery("Заказ принят!");
+    } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
+});
+
+bot.action(/reject_(.+)/, async (ctx) => {
+    const userId = ctx.match[1];
+    try {
+        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, ваш заказ отменен.</b>", { parse_mode: 'HTML' });
+        await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🔴 <b>СТАТУС: ОТКЛОНЕН</b>", { parse_mode: 'HTML' });
+        await ctx.answerCbQuery("Заказ отклонен.");
+    } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
+});
+
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 16 - Интерактивная Карта и Админ панель)!'));
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
