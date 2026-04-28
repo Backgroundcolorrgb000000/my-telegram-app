@@ -4,15 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FORMA | Магазин мебели</title>
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
-    
     <style>
         :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --accent: #f9f9f9; --red: #ff5252; }
-        body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
+        body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; scroll-behavior: smooth; }
         header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
         .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
         
@@ -85,7 +81,7 @@
             <div class="section-header"><h2>Корзина</h2></div>
             <div id="cart-items" style="padding: 0 20px;"></div>
             
-            <div id="checkout-form" style="display: none; padding-top: 10px;">
+            <div id="checkout-form" style="display: none; padding-top: 10px; padding-bottom: 250px;">
                 <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Промокод</h2></div>
                 <div class="promo-container">
                     <input type="text" id="promo-input" class="custom-input" style="margin: 0; flex-grow: 1; width: auto;" placeholder="Код (например, FORMA10)">
@@ -93,29 +89,18 @@
                 </div>
                 <p id="promo-msg" style="text-align: center; font-size: 12px; margin-top: -5px; margin-bottom: 15px; display: none;"></p>
 
-                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Доставка</h2></div>
+                <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Метод получения</h2></div>
                 <select id="delivery-method" class="custom-select" onchange="updateMainButton()">
                     <option value="0">Самовывоз (Бесплатно)</option>
                     <option value="15">Доставка (+$15)</option>
                 </select>
 
-                <div class="section-header" style="padding-top: 0; padding-bottom: 5px;"><h2>Детали заказа</h2></div>
+                <div class="section-header" style="padding-top: 0; padding-bottom: 5px;"><h2>Контактный телефон</h2></div>
                 
                 <input type="tel" id="order-phone" class="custom-input" placeholder="+998 (__) ___-__-__" maxlength="19">
-                
-                <div style="display: flex; flex-direction: column;">
-                    <input type="text" id="order-address" class="custom-input" style="margin-bottom: 10px;" placeholder="Адрес или локация">
-                    
-                    <button onclick="toggleMap()" id="loc-btn" style="margin: 0 15px 15px; background: #007bff; color: white; border: none; border-radius: 10px; padding: 12px; font-weight: 600; font-family: 'Montserrat', sans-serif; cursor: pointer;">
-                        📍 Выбрать точку на карте
-                    </button>
-
-                    <div id="map-container" style="display:none; margin: 0 15px 15px; height: 300px; border-radius: 15px; overflow: hidden; border: 1px solid #ddd; position: relative;">
-                        <div id="map" style="height: 100%; width: 100%;"></div>
-                        <button onclick="confirmLocation()" style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 1000; background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">✅ Подтвердить точку</button>
-                    </div>
-                </div>
-
+                <p style="font-size: 11px; color: var(--hint); text-align: center; margin-top: -5px; padding: 0 20px;">
+                    Если вы выбрали доставку, бот попросит указать вашу геолокацию на следующем шаге.
+                </p>
             </div>
             <div id="cart-empty" style="text-align: center; padding: 60px 20px; color: var(--hint);">🛒<p>Пусто</p></div>
         </section>
@@ -166,7 +151,7 @@
     let currentCategory = 'all';
     let discount = 0;
 
-    // 🟢 МАСКА ДЛЯ ТЕЛЕФОНА (+998)
+    // 🟢 МАСКА ДЛЯ ТЕЛЕФОНА И АВТО-СКРОЛЛ
     const phoneInput = document.getElementById('order-phone');
     phoneInput.addEventListener('input', function (e) {
         let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2})/);
@@ -174,59 +159,14 @@
         if (!e.target.value.startsWith('+998')) { e.target.value = '+998 ' + e.target.value.replace('+998', ''); }
         e.target.value = !x[3] ? `+${x[1]} ${x[2]}` : `+${x[1]} (${x[2]}) ${x[3]}` + (x[4] ? `-${x[4]}` : '') + (x[5] ? `-${x[5]}` : '');
     });
+    
     phoneInput.addEventListener('focus', function(e) {
         if (!e.target.value) e.target.value = '+998 ';
+        // Плавно скроллим страницу вверх, чтобы клавиатура не перекрывала поле
+        setTimeout(() => {
+            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 300);
     });
-
-    // 🟢 ИНТЕРАКТИВНАЯ КАРТА LEAFLET
-    let map;
-    let marker;
-    let selectedCoords = null;
-
-    function toggleMap() {
-        const container = document.getElementById('map-container');
-        if (container.style.display === 'none') {
-            container.style.display = 'block';
-            initMap();
-            // Фикс для правильного отображения карты в скрытом div
-            setTimeout(() => { if(map) map.invalidateSize(); }, 100); 
-        } else {
-            container.style.display = 'none';
-        }
-    }
-
-    function initMap() {
-        if (map) return;
-
-        // Ташкент по умолчанию
-        map = L.map('map').setView([41.311081, 69.240562], 12);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap'
-        }).addTo(map);
-
-        map.on('click', function(e) {
-            if (marker) {
-                marker.setLatLng(e.latlng);
-            } else {
-                marker = L.marker(e.latlng, {draggable: true}).addTo(map);
-            }
-            selectedCoords = e.latlng;
-        });
-    }
-
-    function confirmLocation() {
-        if (selectedCoords) {
-            const link = `https://www.google.com/maps?q=$${selectedCoords.lat},${selectedCoords.lng}`;
-            document.getElementById('order-address').value = link;
-            document.getElementById('map-container').style.display = 'none';
-            document.getElementById('loc-btn').innerText = "✅ Точка на карте выбрана";
-            document.getElementById('loc-btn').style.background = "#28a745";
-            tg.HapticFeedback.notificationOccurred('success');
-        } else {
-            tg.showAlert("Сначала кликните на карту, чтобы поставить метку.");
-        }
-    }
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -357,7 +297,7 @@
             const isCartActive = document.getElementById('cart').classList.contains('active');
             if (isCartActive) {
                 let final = (total - (total * discount)) + (parseFloat(document.getElementById('delivery-method').value) || 0);
-                tg.MainButton.setText(`ОПЛАТИТЬ: $ ${final.toFixed(2)}`);
+                tg.MainButton.setText(`ОФОРМИТЬ: $ ${final.toFixed(2)}`);
             } else {
                 tg.MainButton.setText(`В КОРЗИНУ (${total} $)`);
             }
@@ -421,7 +361,7 @@
             products: cart,
             totalPrice: final,
             customerPhone: document.getElementById('order-phone').value,
-            deliveryAddress: document.getElementById('order-address').value || 'Самовывоз',
+            deliveryAddress: 'Требуется гео', // Заглушка, бот спросит локацию
             deliveryMethod: document.getElementById('delivery-method').options[document.getElementById('delivery-method').selectedIndex].text
         };
         tg.sendData(JSON.stringify(data));
