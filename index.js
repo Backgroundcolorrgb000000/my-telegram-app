@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// 🟢 ВЕРСИЯ 14 - Обновленные кнопки старта
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=14';
+// 🟢 ВЕРСИЯ 15 - Исправление оплаты и кэша
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=15';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -47,23 +47,16 @@ async function collectUser(ctx) {
 bot.start(async (ctx) => {
     await collectUser(ctx);
     
-    // 🟢 1. ДЕЛАЕМ КНОПКУ КАТАЛОГА ПОСТОЯННОЙ (Слева внизу возле ввода текста)
-    try {
-        await ctx.setChatMenuButton({
-            type: 'web_app',
-            text: '🛒 Каталог',
-            web_app: { url: webAppUrl }
-        });
-    } catch (e) {
-        console.error('Не удалось установить кнопку меню:', e.message);
-    }
+    // Пытаемся сбросить меню на стандартное
+    try { await ctx.setChatMenuButton({ type: 'default' }); } catch (e) {}
 
-    // 🟢 2. ОТПРАВЛЯЕМ ПРИВЕТСТВИЕ С КРАСИВОЙ КНОПКОЙ ПРЯМО В ЧАТ
+    // 🟢 ВАЖНО: Используем Reply Keyboard (клавиатурную кнопку). 
+    // Только через неё работает tg.sendData() для оформления заказа.
     ctx.reply(
-        'Добро пожаловать в FORMA! 🛋\nВаш персональный гид в мире современной мебели.\n\nНажмите кнопку ниже, чтобы открыть наш магазин:', 
-        Markup.inlineKeyboard([
-            [Markup.button.webApp('🛒 ОТКРЫТЬ МАГАЗИН', webAppUrl)]
-        ])
+        'Добро пожаловать в FORMA! 🛋\nИспользуйте кнопку ниже для входа в каталог и оформления заказов.', 
+        Markup.keyboard([
+            [Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]
+        ]).resize()
     );
 });
 
@@ -78,7 +71,7 @@ bot.command('send', async (ctx) => {
         const rows = await sheet.getRows();
         let count = 0;
 
-        ctx.reply(`📢 Начинаю рассылку на ${rows.length} чел...`);
+        ctx.reply(`📢 Начинаю рассылку...`);
         for (const row of rows) {
             try {
                 await bot.telegram.sendMessage(row.get("ID"), msg);
@@ -94,8 +87,6 @@ bot.on('web_app_data', async (ctx) => {
         const data = JSON.parse(ctx.message.web_app_data.data);
         const amount = data.totalPrice || 0; 
         
-        if (amount <= 0) return ctx.reply('Ошибка: корзина пуста.');
-
         const orderId = `order_${Date.now()}`;
         pendingOrders.set(orderId, data);
 
@@ -111,7 +102,7 @@ bot.on('web_app_data', async (ctx) => {
         
     } catch (e) {
         console.error("❌ ОШИБКА ИНВОЙСА:", e.message);
-        ctx.reply("Ошибка при создании счета. Попробуйте еще раз.");
+        ctx.reply("Ошибка при создании счета.");
     }
 });
 
@@ -121,75 +112,40 @@ bot.on('successful_payment', async (ctx) => {
     try {
         const payment = ctx.message.successful_payment;
         const orderId = payment.invoice_payload;
-        const userId = ctx.from.id;
-        
         const orderData = pendingOrders.get(orderId) || {};
+        
         const itemsStr = Object.entries(orderData.products || {})
             .map(([id, qty]) => `${id} (${qty}шт)`)
             .join(', ');
 
-        const cPhone = orderData.customerPhone || "Не указан";
-        const cDelivery = orderData.deliveryMethod || "Не указана";
-        const cAddress = orderData.deliveryAddress || "Не указан";
-        
         const tgName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
 
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя": tgName,
-            "Телефон": cPhone,
-            "Адрес": `${cDelivery} - ${cAddress}`,
+            "Телефон": orderData.customerPhone || "Не указан",
+            "Адрес": `${orderData.deliveryMethod} - ${orderData.deliveryAddress}`,
             "Сумма ($)": payment.total_amount / 100,
             "Товары": itemsStr || "Товары",
-            "ID пользователя": String(userId)
+            "ID пользователя": String(ctx.from.id)
         };
 
         const doc = await getSheet();
         await doc.sheetsByIndex[0].addRow(rowData);
-        await ctx.reply("✨ Оплата прошла успешно! Ожидайте подтверждения.");
+        await ctx.reply("✨ Оплата прошла успешно!");
         pendingOrders.delete(orderId);
 
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${tgName}\n` +
-                             `📞 <b>Телефон:</b> ${cPhone}\n` +
-                             `🚚 <b>Доставка:</b> ${cDelivery}\n` +
-                             `📍 <b>Адрес/Гео:</b> ${cAddress}\n` +
+                             `📞 <b>Телефон:</b> ${orderData.customerPhone}\n` +
+                             `📍 <b>Адрес:</b> ${orderData.deliveryAddress}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Итого:</b> $ ${payment.total_amount / 100}`;
             
-            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
-                parse_mode: 'HTML',
-                disable_web_page_preview: true,
-                ...Markup.inlineKeyboard([
-                    [
-                        Markup.button.callback('✅ Принять', `accept_${userId}`),
-                        Markup.button.callback('❌ Отклонить', `reject_${userId}`)
-                    ]
-                ])
-            });
+            await bot.telegram.sendMessage(ADMIN_ID, adminMsg, { parse_mode: 'HTML', disable_web_page_preview: true });
         }
     } catch (e) { console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message); }
 });
 
-bot.action(/accept_(.+)/, async (ctx) => {
-    const userId = ctx.match[1];
-    try {
-        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер скоро свяжется с вами.", { parse_mode: 'HTML' });
-        await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🟢 <b>СТАТУС: ПРИНЯТ</b>", { parse_mode: 'HTML' });
-        await ctx.answerCbQuery("Заказ принят!");
-    } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
-});
-
-bot.action(/reject_(.+)/, async (ctx) => {
-    const userId = ctx.match[1];
-    try {
-        await bot.telegram.sendMessage(userId, "❌ <b>К сожалению, ваш заказ отменен.</b>\nДеньги будут возвращены.", { parse_mode: 'HTML' });
-        await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🔴 <b>СТАТУС: ОТКЛОНЕН</b>", { parse_mode: 'HTML' });
-        await ctx.answerCbQuery("Заказ отклонен.");
-    } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
-});
-
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 14)!'));
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 15)!'));
