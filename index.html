@@ -1,61 +1,46 @@
-<div class="section-header" style="padding-top: 0;"><h2>Детали заказа</h2></div>
-<input type="text" id="order-name" class="custom-input" placeholder="Имя" readonly> <div style="position: relative;">
-    <input type="tel" id="order-phone" class="custom-input" placeholder="+998 (__) ___-__-__" maxlength="19">
-</div>
-
-<div style="position: relative; display: flex; flex-direction: column;">
-    <input type="text" id="order-address" class="custom-input" placeholder="Адрес доставки">
-    <button onclick="getLocation()" id="loc-btn" style="margin: -5px 15px 15px; background: #eee; border: none; padding: 10px; border-radius: 10px; font-size: 12px; cursor: pointer;">
-        📍 Прикрепить мою локацию
-    </button>
-</div>
-
-<script>
-    // 1. МАСКА ТЕЛЕФОНА (Узбекистан)
-    const phoneInput = document.getElementById('order-phone');
-    phoneInput.addEventListener('input', (e) => {
-        let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2})/);
-        if (!x[1]) { e.target.value = '+998 '; return; }
-        if (!e.target.value.startsWith('+998')) { e.target.value = '+998 ' + e.target.value.replace('+998', ''); }
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FORMA | Магазин мебели</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --accent: #f9f9f9; --red: #ff5252; }
+        body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
+        header { display: flex; justify-content: space-between; padding: 20px; align-items: center; }
+        .logo { font-size: 22px; letter-spacing: 5px; font-weight: 300; }
         
-        e.target.value = !x[3] ? `+${x[1]} ${x[2]}` : `+${x[1]} (${x[2]}) ${x[3]}` + (x[4] ? `-${x[4]}` : '') + (x[5] ? `-${x[5]}` : '');
-    });
+        .categories { display: flex; gap: 15px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
+        .cat-item { text-align: center; min-width: 70px; cursor: pointer; }
+        .cat-icon { width: 70px; height: 70px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 30px; margin-bottom: 8px; border: 1px solid transparent; transition: 0.2s; }
+        .cat-item.active .cat-icon { border-color: #000; background: #fff; transform: scale(1.05); }
+        .cat-item p { font-size: 11px; margin: 0; }
 
-    // При фокусе на пустое поле сразу ставим префикс
-    phoneInput.addEventListener('focus', (e) => {
-        if (!e.target.value) e.target.value = '+998 ';
-    });
+        .section-header { display: flex; justify-content: space-between; padding: 20px; }
+        .section-header h2 { font-size: 18px; font-weight: 400; margin: 0; }
 
-    // 2. ФУНКЦИЯ ГЕОЛОКАЦИИ
-    function getLocation() {
-        const btn = document.getElementById('loc-btn');
-        btn.innerText = "⏳ Определение...";
+        .products-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 0 20px; }
+        .product-card { background: var(--accent); border-radius: 25px; padding: 15px; text-align: center; position: relative; cursor: pointer; transition: transform 0.1s; }
+        .product-card:active { transform: scale(0.95); }
+        .product-img { width: 100%; height: 120px; object-fit: cover; border-radius: 15px; margin-bottom: 10px; display: block; background: #eee; }
+        .p-name { font-size: 13px; margin: 5px 0; font-weight: 400; height: 32px; overflow: hidden; }
+        .p-price { font-size: 14px; font-weight: 600; }
+
+        .history-item { background: var(--accent); border-radius: 20px; padding: 15px; margin: 0 20px 10px; text-align: left; border-left: 4px solid #000; }
+        .history-date { font-size: 11px; color: var(--hint); margin-bottom: 5px; }
+        .history-total { font-weight: 600; margin-top: 5px; }
+
+        .nav-bar { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 10px 0; border-top: 1px solid #eee; z-index: 1000; }
+        .nav-item { text-align: center; color: #ccc; cursor: pointer; flex: 1; transition: 0.2s; }
+        .nav-item.active { color: #000; }
+        .nav-item div { font-size: 22px; }
+        .nav-item p { font-size: 10px; margin: 4px 0 0; }
+
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
-                document.getElementById('order-address').value = mapLink;
-                btn.innerText = "✅ Локация добавлена";
-                btn.style.color = "green";
-                tg.HapticFeedback.notificationOccurred('success');
-            }, (error) => {
-                btn.innerText = "❌ Ошибка доступа";
-                tg.showAlert("Пожалуйста, разрешите доступ к геолокации в настройках Telegram");
-            });
-        } else {
-            tg.showAlert("Геолокация не поддерживается вашим устройством");
-        }
-    }
-
-    // 3. ВАЛИДАЦИЯ ПЕРЕД ОТПРАВКОЙ (внутри tg.MainButton.onClick)
-    // Вставь это вместо старой проверки телефона:
-    /*
-    const phone = document.getElementById('order-phone').value.replace(/\D/g, '');
-    if (phone.length !== 12) {
-        tg.showAlert("Введите полный номер телефона (12 цифр)");
-        return;
-    }
-    */
-</script>
+        .custom-input, .custom-select { width: calc(100% - 30px); margin: 0 15px 15px; padding: 15px; border-radius: 15px; border: 1px solid #eee; outline: none; font-size: 14px; background: var(--accent); font-family: 'Montserrat', sans-serif; box-sizing: border-box; }
+        .about-img
