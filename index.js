@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// 🟢 ВЕРСИЯ 16 - Полный функционал
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=16';
+// 🟢 ВЕРСИЯ 17 - Нативная геолокация Telegram
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=17';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -79,28 +79,80 @@ bot.command('send', async (ctx) => {
     } catch (e) { ctx.reply("Ошибка рассылки: " + e.message); }
 });
 
+// 🟢 ПОЛУЧЕНИЕ ДАННЫХ ИЗ КОРЗИНЫ
 bot.on('web_app_data', async (ctx) => {
     try {
         const data = JSON.parse(ctx.message.web_app_data.data);
         const amount = data.totalPrice || 0; 
-        
         const orderId = `order_${Date.now()}`;
-        pendingOrders.set(orderId, data);
+        data.orderId = orderId; // Запоминаем ID внутри данных
 
-        await ctx.replyWithInvoice({
-            title: 'Оплата заказа FORMA',
-            description: `Мебель: ${Object.keys(data.products).length} поз.`,
-            payload: orderId,
-            provider_token: PAYMENT_TOKEN,
-            currency: 'USD',
-            prices: [{ label: 'ИТОГО', amount: Math.round(amount * 100) }], 
-            start_parameter: 'order-process'
-        });
-        
+        if (data.deliveryMethod.includes("Самовывоз")) {
+            // Если самовывоз - сразу кидаем счет
+            pendingOrders.set(orderId, data);
+            await ctx.replyWithInvoice({
+                title: 'Оплата заказа FORMA',
+                description: `Мебель: ${Object.keys(data.products).length} поз.`,
+                payload: orderId,
+                provider_token: PAYMENT_TOKEN,
+                currency: 'USD',
+                prices: [{ label: 'ИТОГО', amount: Math.round(amount * 100) }], 
+                start_parameter: 'order-process'
+            });
+        } else {
+            // Если нужна доставка - запрашиваем гео
+            pendingOrders.set(ctx.from.id, data); // Сохраняем временно по ID пользователя
+            await ctx.reply(
+                '📍 Пожалуйста, отправьте вашу геолокацию для расчета доставки.',
+                Markup.keyboard([
+                    [Markup.button.locationRequest('📍 Отправить мою локацию')],
+                    ['❌ Отмена заказа']
+                ]).resize().oneTime()
+            );
+        }
     } catch (e) {
-        console.error("❌ ОШИБКА ИНВОЙСА:", e.message);
-        ctx.reply("Ошибка при создании счета.");
+        console.error("❌ ОШИБКА:", e.message);
     }
+});
+
+// 🟢 ПОЛУЧЕНИЕ ЛОКАЦИИ ОТ КЛИЕНТА
+bot.on('location', async (ctx) => {
+    const userId = ctx.from.id;
+    const orderData = pendingOrders.get(userId);
+
+    if (!orderData) return; // Игнорируем, если нет заказа
+
+    const lat = ctx.message.location.latitude;
+    const lon = ctx.message.location.longitude;
+    orderData.deliveryAddress = `https://maps.google.com/?q=${lat},${lon}`; // Формируем точную ссылку
+
+    // Перекладываем заказ в правильное хранилище для оплаты
+    pendingOrders.delete(userId);
+    pendingOrders.set(orderData.orderId, orderData);
+
+    // Возвращаем обычную кнопку магазина
+    await ctx.reply('✅ Локация получена! Формирую счет...', Markup.keyboard([
+        [Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]
+    ]).resize());
+
+    // Выставляем счет
+    await ctx.replyWithInvoice({
+        title: 'Оплата заказа FORMA',
+        description: `Мебель: ${Object.keys(orderData.products).length} поз.`,
+        payload: orderData.orderId,
+        provider_token: PAYMENT_TOKEN,
+        currency: 'USD',
+        prices: [{ label: 'ИТОГО', amount: Math.round(orderData.totalPrice * 100) }], 
+        start_parameter: 'order-process'
+    });
+});
+
+// Отмена заказа на этапе локации
+bot.hears('❌ Отмена заказа', async (ctx) => {
+    pendingOrders.delete(ctx.from.id);
+    await ctx.reply('Заказ отменен.', Markup.keyboard([
+        [Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]
+    ]).resize());
 });
 
 bot.on('pre_checkout_query', (ctx) => ctx.answerPreCheckoutQuery(true));
@@ -133,7 +185,6 @@ bot.on('successful_payment', async (ctx) => {
         await ctx.reply("✨ Оплата прошла успешно! Ваш заказ в обработке.");
         pendingOrders.delete(orderId);
 
-        // УВЕДОМЛЕНИЕ АДМИНУ С КНОПКАМИ
         if (ADMIN_ID) {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${tgName}\n` +
@@ -156,7 +207,6 @@ bot.on('successful_payment', async (ctx) => {
     } catch (e) { console.error("❌ ОШИБКА ПОСЛЕ ОПЛАТЫ:", e.message); }
 });
 
-// ОБРАБОТЧИКИ КНОПОК АДМИНА
 bot.action(/accept_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
@@ -175,6 +225,6 @@ bot.action(/reject_(.+)/, async (ctx) => {
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 16 - Интерактивная Карта и Админ панель)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 17 - Нативное Гео)!'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
