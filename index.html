@@ -167,32 +167,38 @@
     phoneInput.addEventListener('focus', function(e) {
         if (!e.target.value) e.target.value = '+998 ';
     });
+// Найди функцию getLocation() в своем index.html и замени её на эту:
+function getLocation() {
+    const btn = document.getElementById('loc-btn');
+    btn.innerText = "⏳ Определение (до 5 сек)...";
+    
+    // Параметры для быстрого поиска
+    const options = {
+        enableHighAccuracy: false, // Отключаем высокую точность для скорости
+        timeout: 5000,             // Ждем не больше 5 секунд
+        maximumAge: 0
+    };
 
-    // 🟢 ГЕОЛОКАЦИЯ
-    function getLocation() {
-        const btn = document.getElementById('loc-btn');
-        btn.innerText = "⏳ Определяем геопозицию...";
-        
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const lat = position.coords.latitude;
-                const lon = position.coords.longitude;
-                // Генерируем ссылку на Google Карты
-                const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
-                document.getElementById('order-address').value = mapLink;
-                
-                btn.innerText = "✅ Геопозиция добавлена";
-                btn.style.background = "#d4edda";
-                btn.style.color = "#155724";
-                tg.HapticFeedback.notificationOccurred('success');
-            }, (error) => {
-                btn.innerText = "❌ Ошибка доступа";
-                tg.showAlert("Пожалуйста, разрешите Telegram доступ к геолокации в настройках телефона.");
-            });
-        } else {
-            tg.showAlert("Геолокация не поддерживается вашим устройством");
-        }
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            // ИСПРАВЛЕННАЯ ССЫЛКА
+            const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
+            document.getElementById('order-address').value = mapLink;
+            
+            btn.innerText = "✅ Локация добавлена";
+            btn.style.background = "#d4edda";
+            tg.HapticFeedback.notificationOccurred('success');
+        }, (error) => {
+            console.log(error);
+            btn.innerText = "❌ Не удалось определить";
+            tg.showAlert("Не удалось быстро найти координаты. Пожалуйста, введите адрес вручную.");
+        }, options);
+    } else {
+        tg.showAlert("Геолокация не поддерживается");
     }
+}
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
