@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// 🟢 ВЕРСИЯ 12 - Принудительный сброс кэша!
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=12';
+// 🟢 ВЕРСИЯ 14 - Обновленные кнопки старта
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=14';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -47,13 +47,23 @@ async function collectUser(ctx) {
 bot.start(async (ctx) => {
     await collectUser(ctx);
     
-    // Прячем синюю кнопку
+    // 🟢 1. ДЕЛАЕМ КНОПКУ КАТАЛОГА ПОСТОЯННОЙ (Слева внизу возле ввода текста)
     try {
-        await ctx.setChatMenuButton({ type: 'default' });
-    } catch (e) {}
+        await ctx.setChatMenuButton({
+            type: 'web_app',
+            text: '🛒 Каталог',
+            web_app: { url: webAppUrl }
+        });
+    } catch (e) {
+        console.error('Не удалось установить кнопку меню:', e.message);
+    }
 
-    ctx.reply('Добро пожаловать в FORMA! 🛋\nВаш персональный гид в мире современной мебели.', 
-        Markup.keyboard([[Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]]).resize()
+    // 🟢 2. ОТПРАВЛЯЕМ ПРИВЕТСТВИЕ С КРАСИВОЙ КНОПКОЙ ПРЯМО В ЧАТ
+    ctx.reply(
+        'Добро пожаловать в FORMA! 🛋\nВаш персональный гид в мире современной мебели.\n\nНажмите кнопку ниже, чтобы открыть наш магазин:', 
+        Markup.inlineKeyboard([
+            [Markup.button.webApp('🛒 ОТКРЫТЬ МАГАЗИН', webAppUrl)]
+        ])
     );
 });
 
@@ -122,10 +132,8 @@ bot.on('successful_payment', async (ctx) => {
         const cDelivery = orderData.deliveryMethod || "Не указана";
         const cAddress = orderData.deliveryAddress || "Не указан";
         
-        // 🟢 Берем имя строго из Telegram аккаунта
         const tgName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
 
-        // 🟢 Новая структура записи в таблицу
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя": tgName,
@@ -146,12 +154,13 @@ bot.on('successful_payment', async (ctx) => {
                              `👤 <b>Клиент:</b> ${tgName}\n` +
                              `📞 <b>Телефон:</b> ${cPhone}\n` +
                              `🚚 <b>Доставка:</b> ${cDelivery}\n` +
-                             `📍 <b>Адрес:</b> ${cAddress}\n` +
+                             `📍 <b>Адрес/Гео:</b> ${cAddress}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Итого:</b> $ ${payment.total_amount / 100}`;
             
             await bot.telegram.sendMessage(ADMIN_ID, adminMsg, {
                 parse_mode: 'HTML',
+                disable_web_page_preview: true,
                 ...Markup.inlineKeyboard([
                     [
                         Markup.button.callback('✅ Принять', `accept_${userId}`),
@@ -166,7 +175,7 @@ bot.on('successful_payment', async (ctx) => {
 bot.action(/accept_(.+)/, async (ctx) => {
     const userId = ctx.match[1];
     try {
-        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер свяжется с вами.", { parse_mode: 'HTML' });
+        await bot.telegram.sendMessage(userId, "✅ <b>Ваш заказ принят в работу!</b>\nНаш менеджер скоро свяжется с вами.", { parse_mode: 'HTML' });
         await ctx.editMessageText(ctx.update.callback_query.message.text + "\n\n🟢 <b>СТАТУС: ПРИНЯТ</b>", { parse_mode: 'HTML' });
         await ctx.answerCbQuery("Заказ принят!");
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
@@ -181,6 +190,6 @@ bot.action(/reject_(.+)/, async (ctx) => {
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 12)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 14)!'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
