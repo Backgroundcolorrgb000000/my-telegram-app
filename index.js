@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// 🟢 ВЕРСИЯ 18 - Фикс Google Sheets и структуры адреса
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=18';
+// 🟢 ВЕРСИЯ 19 - Разделение адреса и локации в таблице
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=19';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -109,7 +109,6 @@ bot.on('web_app_data', async (ctx) => {
     } catch (e) { console.error("❌ ОШИБКА:", e.message); }
 });
 
-// ПОЛУЧЕНИЕ ЛОКАЦИИ (Для доставки)
 bot.on('location', async (ctx) => {
     const userId = ctx.from.id;
     const orderData = pendingOrders.get(userId);
@@ -160,20 +159,18 @@ bot.on('successful_payment', async (ctx) => {
 
         const tgName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
         
-        // 🟢 ИСПРАВЛЕНИЕ ОШИБКИ GOOGLE SHEETS (#ERROR!)
-        // Добавляем апостроф перед плюсом, чтобы Google Таблицы воспринимали номер как текст
         const safePhone = orderData.customerPhone ? "'" + orderData.customerPhone : "'Не указан";
         
-        // Формируем красивый адрес из метода, примечания и гео-ссылки
+        // 🟢 РАЗДЕЛЕНИЕ: В адресе остается только метод и текст. Ссылка вынесена отдельно.
         const note = orderData.deliveryNote ? `Примечание: ${orderData.deliveryNote}` : "Без примечаний";
-        const geo = orderData.mapLink ? `Гео: ${orderData.mapLink}` : "";
-        const fullAddress = `${orderData.deliveryMethod}. ${note}. ${geo}`;
+        const fullAddress = `${orderData.deliveryMethod}. ${note}`;
 
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя": tgName,
             "Телефон": safePhone,
             "Адрес": fullAddress,
+            "Локация": orderData.mapLink || "Нет", // 🟢 НОВАЯ КОЛОНКА В ТАБЛИЦЕ
             "Сумма ($)": payment.total_amount / 100,
             "Товары": itemsStr || "Товары",
             "ID пользователя": String(userId)
@@ -226,6 +223,6 @@ bot.action(/reject_(.+)/, async (ctx) => {
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 18 - iOS Keyboard Fix)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 19 - Разделение адреса и локации)!'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
