@@ -47,8 +47,37 @@
         .promo-container { display: flex; gap: 10px; margin: 0 15px 15px; }
         .promo-btn { background: #1a1a1a; color: #fff; border: none; border-radius: 15px; padding: 0 20px; font-family: 'Montserrat', sans-serif; cursor: pointer; }
         
-        /* Умный блок для клавиатуры iOS */
         #keyboard-spacer { height: 10px; transition: height 0.3s ease; }
+
+        /* 🟢 СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА ТОВАРА */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 2000; display: none;
+            align-items: flex-end; justify-content: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-overlay.show { opacity: 1; display: flex; }
+        .product-modal {
+            background: #fff; width: 100%; max-height: 85vh; border-radius: 30px 30px 0 0;
+            padding: 20px; box-sizing: border-box; overflow-y: auto;
+            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .modal-overlay.show .product-modal { transform: translateY(0); }
+        .close-modal {
+            position: absolute; top: 15px; right: 20px; font-size: 24px; color: var(--hint);
+            cursor: pointer; background: #eee; width: 30px; height: 30px; 
+            display: flex; align-items: center; justify-content: center; border-radius: 50%;
+        }
+        .modal-img { width: 100%; height: 250px; object-fit: cover; border-radius: 20px; margin-bottom: 15px; }
+        .modal-title { font-size: 20px; font-weight: 600; margin: 0 0 10px 0; }
+        .modal-price { font-size: 18px; font-weight: 600; color: #000; margin-bottom: 15px; }
+        .modal-desc { font-size: 13px; line-height: 1.6; color: #555; margin-bottom: 20px; white-space: pre-wrap; }
+        .add-to-cart-btn {
+            background: #000; color: #fff; width: 100%; padding: 16px;
+            border: none; border-radius: 15px; font-size: 16px; font-weight: 600;
+            font-family: 'Montserrat', sans-serif; cursor: pointer; transition: 0.2s;
+        }
+        .add-to-cart-btn:active { transform: scale(0.98); }
     </style>
 </head>
 <body>
@@ -84,7 +113,7 @@
             <div class="section-header"><h2>Корзина</h2></div>
             <div id="cart-items" style="padding: 0 20px;"></div>
             
-            <div id="checkout-form" style="display: none; padding-top: 10px;">
+            <div id="checkout-form" style="display: none; padding-top: 10px; padding-bottom: 400px;">
                 <div class="section-header" style="padding-top: 0; padding-bottom: 10px;"><h2>Промокод</h2></div>
                 <div class="promo-container">
                     <input type="text" id="promo-input" class="custom-input" style="margin: 0; flex-grow: 1; width: auto;" placeholder="Код (например, FORMA10)">
@@ -133,6 +162,17 @@
         </section>
     </main>
 
+    <div id="product-modal-overlay" class="modal-overlay" onclick="closeProductModal(event)">
+        <div class="product-modal" onclick="event.stopPropagation()">
+            <div class="close-modal" onclick="closeProductModal()">&times;</div>
+            <img id="modal-img" src="" class="modal-img">
+            <h2 id="modal-title" class="modal-title">Название</h2>
+            <div id="modal-price" class="modal-price">$ 0</div>
+            <div id="modal-desc" class="modal-desc">Описание</div>
+            <button id="modal-add-btn" class="add-to-cart-btn" onclick="addFromModal()">Добавить в корзину</button>
+        </div>
+    </div>
+
     <nav class="nav-bar">
         <div class="nav-item active" onclick="nav('home', this)"><div>🏠</div><p>Главная</p></div>
         <div class="nav-item" onclick="nav('search', this)"><div>🔍</div><p>Поиск</p></div>
@@ -145,34 +185,56 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    // 🟢 БАЗА ТОВАРОВ С ОПИСАНИЯМИ
     const products = [
-        { id: 'sofa_classic', name: 'Диван "Classic Velvet"', price: 1200, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80', category: 'sofas' },
-        { id: 'chair_wood', name: 'Кресло "Scandi Oak"', price: 450, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=400&q=80', category: 'chairs' },
-        { id: 'bed_king', name: 'Кровать "Grand Hotel"', price: 1800, image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=400&q=80', category: 'beds' },
-        { id: 'mirror_gold', name: 'Зеркало "Royal Gold"', price: 210, image: 'https://images.unsplash.com/photo-1582582621959-48d27397dc69?auto=format&fit=crop&w=400&q=80', category: 'mirrors' }
+        { 
+            id: 'sofa_classic', 
+            name: 'Диван "Classic Velvet"', 
+            price: 1200, 
+            image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80', 
+            category: 'sofas',
+            description: 'Элегантный трехместный диван в обивке из премиального велюра. Идеально подходит для просторных гостиных. \n\n• Материал: Велюр, массив дуба\n• Размеры: 220x90x85 см\n• Наполнитель: Высокоэластичный пенополиуретан\n• Гарантия: 2 года'
+        },
+        { 
+            id: 'chair_wood', 
+            name: 'Кресло "Scandi Oak"', 
+            price: 450, 
+            image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=400&q=80', 
+            category: 'chairs',
+            description: 'Минималистичное кресло в скандинавском стиле. Эргономичная спинка обеспечивает комфортную поддержку позвоночника. \n\n• Материал: Массив ясеня, рогожка\n• Размеры: 75x80x95 см\n• Особенности: Съемный чехол сиденья'
+        },
+        { 
+            id: 'bed_king', 
+            name: 'Кровать "Grand Hotel"', 
+            price: 1800, 
+            image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=400&q=80', 
+            category: 'beds',
+            description: 'Роскошная двуспальная кровать с высоким мягким изголовьем. Создает атмосферу пятизвездочного отеля в вашей спальне. \n\n• Спальное место: 180x200 см\n• Подъемный механизм: Есть\n• Ящик для белья: Объем 400 литров\n*Матрас продается отдельно.'
+        },
+        { 
+            id: 'mirror_gold', 
+            name: 'Зеркало "Royal Gold"', 
+            price: 210, 
+            image: 'https://images.unsplash.com/photo-1582582621959-48d27397dc69?auto=format&fit=crop&w=400&q=80', 
+            category: 'mirrors',
+            description: 'Напольное зеркало в изящной металлической раме цвета матового золота. Визуально расширяет пространство. \n\n• Размеры: 170x60 см\n• Рама: Алюминий\n• Особенности: Можно повесить на стену или прислонить'
+        }
     ];
 
     let cart = {};
     let currentCategory = 'all';
     let discount = 0;
+    let currentProductId = null; // Для модального окна
 
-    // 🟢 УМНАЯ ЛОГИКА ДЛЯ КЛАВИАТУРЫ (iPhone/Android)
     const phoneInput = document.getElementById('order-phone');
     const noteInput = document.getElementById('order-note');
     const spacer = document.getElementById('keyboard-spacer');
 
     function handleFocus(e) {
-        spacer.style.height = '350px'; // Создаем пустое место внизу
-        setTimeout(() => {
-            e.target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 300); // Ждем, пока выедет клавиатура
+        spacer.style.height = '350px';
+        setTimeout(() => { e.target.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 300);
     }
-
-    function handleBlur() {
-        setTimeout(() => {
-            spacer.style.height = '10px'; // Убираем место при закрытии
-        }, 300);
-    }
+    function handleBlur() { setTimeout(() => { spacer.style.height = '10px'; }, 300); }
 
     phoneInput.addEventListener('input', function (e) {
         let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2})/);
@@ -186,7 +248,6 @@
         handleFocus(e);
     });
     phoneInput.addEventListener('blur', handleBlur);
-    
     noteInput.addEventListener('focus', handleFocus);
     noteInput.addEventListener('blur', handleBlur);
 
@@ -207,6 +268,7 @@
         updateMainButton();
     }
 
+    // 🟢 ОБНОВЛЕННЫЙ РЕНДЕР (Теперь клик открывает попап, а не сразу корзину)
     function render(containerId, items) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
@@ -217,10 +279,40 @@
         items.forEach(p => {
             const div = document.createElement('div');
             div.className = 'product-card';
-            div.onclick = () => addToCart(p.id);
+            div.onclick = () => openProductModal(p.id); // <--- ИЗМЕНЕНИЕ ЗДЕСЬ
             div.innerHTML = `<img src="${p.image}" class="product-img"><div class="p-name">${p.name}</div><div class="p-price">$ ${p.price}</div>`;
             container.appendChild(div);
         });
+    }
+
+    // 🟢 ФУНКЦИИ МОДАЛЬНОГО ОКНА
+    function openProductModal(id) {
+        const p = products.find(prod => prod.id === id);
+        if (!p) return;
+        
+        currentProductId = p.id;
+        document.getElementById('modal-img').src = p.image;
+        document.getElementById('modal-title').innerText = p.name;
+        document.getElementById('modal-price').innerText = `$ ${p.price}`;
+        document.getElementById('modal-desc').innerText = p.description;
+        
+        document.getElementById('product-modal-overlay').classList.add('show');
+        tg.HapticFeedback.selectionChanged();
+    }
+
+    function closeProductModal(event) {
+        // Если клик был не по самой подложке (а например по карточке), ничего не делаем
+        if (event && event.target.id !== 'product-modal-overlay' && !event.target.classList.contains('close-modal')) return;
+        
+        document.getElementById('product-modal-overlay').classList.remove('show');
+        currentProductId = null;
+    }
+
+    function addFromModal() {
+        if (currentProductId) {
+            addToCart(currentProductId);
+            closeProductModal();
+        }
     }
 
     function filterCategory(cat, el) {
