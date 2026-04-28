@@ -7,8 +7,8 @@ const token = process.env.BOT_TOKEN;
 const PAYMENT_TOKEN = process.env.PAYMENT_TOKEN; 
 const ADMIN_ID = process.env.ADMIN_ID; 
 
-// 🟢 ВЕРСИЯ 17 - Нативная геолокация Telegram
-const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=17';
+// 🟢 ВЕРСИЯ 18 - Фикс Google Sheets и структуры адреса
+const webAppUrl = 'https://backgroundcolorrgb000000.github.io/my-telegram-app/?v=18';
 
 const port = process.env.PORT || 3000;
 http.createServer((req, res) => {
@@ -46,7 +46,6 @@ async function collectUser(ctx) {
 
 bot.start(async (ctx) => {
     await collectUser(ctx);
-    
     try { await ctx.setChatMenuButton({ type: 'default' }); } catch (e) {}
 
     ctx.reply(
@@ -79,16 +78,14 @@ bot.command('send', async (ctx) => {
     } catch (e) { ctx.reply("Ошибка рассылки: " + e.message); }
 });
 
-// 🟢 ПОЛУЧЕНИЕ ДАННЫХ ИЗ КОРЗИНЫ
 bot.on('web_app_data', async (ctx) => {
     try {
         const data = JSON.parse(ctx.message.web_app_data.data);
         const amount = data.totalPrice || 0; 
         const orderId = `order_${Date.now()}`;
-        data.orderId = orderId; // Запоминаем ID внутри данных
+        data.orderId = orderId; 
 
         if (data.deliveryMethod.includes("Самовывоз")) {
-            // Если самовывоз - сразу кидаем счет
             pendingOrders.set(orderId, data);
             await ctx.replyWithInvoice({
                 title: 'Оплата заказа FORMA',
@@ -100,8 +97,7 @@ bot.on('web_app_data', async (ctx) => {
                 start_parameter: 'order-process'
             });
         } else {
-            // Если нужна доставка - запрашиваем гео
-            pendingOrders.set(ctx.from.id, data); // Сохраняем временно по ID пользователя
+            pendingOrders.set(ctx.from.id, data); 
             await ctx.reply(
                 '📍 Пожалуйста, отправьте вашу геолокацию для расчета доставки.',
                 Markup.keyboard([
@@ -110,32 +106,27 @@ bot.on('web_app_data', async (ctx) => {
                 ]).resize().oneTime()
             );
         }
-    } catch (e) {
-        console.error("❌ ОШИБКА:", e.message);
-    }
+    } catch (e) { console.error("❌ ОШИБКА:", e.message); }
 });
 
-// 🟢 ПОЛУЧЕНИЕ ЛОКАЦИИ ОТ КЛИЕНТА
+// ПОЛУЧЕНИЕ ЛОКАЦИИ (Для доставки)
 bot.on('location', async (ctx) => {
     const userId = ctx.from.id;
     const orderData = pendingOrders.get(userId);
 
-    if (!orderData) return; // Игнорируем, если нет заказа
+    if (!orderData) return;
 
     const lat = ctx.message.location.latitude;
     const lon = ctx.message.location.longitude;
-    orderData.deliveryAddress = `https://maps.google.com/?q=${lat},${lon}`; // Формируем точную ссылку
+    orderData.mapLink = `https://maps.google.com/?q=${lat},${lon}`;
 
-    // Перекладываем заказ в правильное хранилище для оплаты
     pendingOrders.delete(userId);
     pendingOrders.set(orderData.orderId, orderData);
 
-    // Возвращаем обычную кнопку магазина
     await ctx.reply('✅ Локация получена! Формирую счет...', Markup.keyboard([
         [Markup.button.webApp('🛒 КАТАЛОГ ТОВАРОВ', webAppUrl)]
     ]).resize());
 
-    // Выставляем счет
     await ctx.replyWithInvoice({
         title: 'Оплата заказа FORMA',
         description: `Мебель: ${Object.keys(orderData.products).length} поз.`,
@@ -147,7 +138,6 @@ bot.on('location', async (ctx) => {
     });
 });
 
-// Отмена заказа на этапе локации
 bot.hears('❌ Отмена заказа', async (ctx) => {
     pendingOrders.delete(ctx.from.id);
     await ctx.reply('Заказ отменен.', Markup.keyboard([
@@ -169,12 +159,21 @@ bot.on('successful_payment', async (ctx) => {
             .join(', ');
 
         const tgName = ctx.from.first_name + (ctx.from.last_name ? ' ' + ctx.from.last_name : '');
+        
+        // 🟢 ИСПРАВЛЕНИЕ ОШИБКИ GOOGLE SHEETS (#ERROR!)
+        // Добавляем апостроф перед плюсом, чтобы Google Таблицы воспринимали номер как текст
+        const safePhone = orderData.customerPhone ? "'" + orderData.customerPhone : "'Не указан";
+        
+        // Формируем красивый адрес из метода, примечания и гео-ссылки
+        const note = orderData.deliveryNote ? `Примечание: ${orderData.deliveryNote}` : "Без примечаний";
+        const geo = orderData.mapLink ? `Гео: ${orderData.mapLink}` : "";
+        const fullAddress = `${orderData.deliveryMethod}. ${note}. ${geo}`;
 
         const rowData = {
             "Дата": new Date().toLocaleString("ru-RU", { timeZone: "Asia/Tashkent" }),
             "Имя": tgName,
-            "Телефон": orderData.customerPhone || "Не указан",
-            "Адрес": `${orderData.deliveryMethod} - ${orderData.deliveryAddress}`,
+            "Телефон": safePhone,
+            "Адрес": fullAddress,
             "Сумма ($)": payment.total_amount / 100,
             "Товары": itemsStr || "Товары",
             "ID пользователя": String(userId)
@@ -189,7 +188,9 @@ bot.on('successful_payment', async (ctx) => {
             const adminMsg = `💰 <b>НОВЫЙ ЗАКАЗ!</b>\n\n` +
                              `👤 <b>Клиент:</b> ${tgName}\n` +
                              `📞 <b>Телефон:</b> ${orderData.customerPhone}\n` +
-                             `📍 <b>Адрес:</b> ${orderData.deliveryAddress}\n` +
+                             `🚚 <b>Тип:</b> ${orderData.deliveryMethod}\n` +
+                             `📝 <b>Примечание:</b> ${orderData.deliveryNote || 'Нет'}\n` +
+                             `📍 <b>Локация:</b> ${orderData.mapLink || 'Самовывоз'}\n` +
                              `📦 <b>Товары:</b> ${itemsStr}\n` +
                              `💵 <b>Итого:</b> $ ${payment.total_amount / 100}`;
             
@@ -225,6 +226,6 @@ bot.action(/reject_(.+)/, async (ctx) => {
     } catch (e) { await ctx.answerCbQuery("Ошибка отправки."); }
 });
 
-bot.launch().then(() => console.log('🚀 Бот запущен (Версия 17 - Нативное Гео)!'));
+bot.launch().then(() => console.log('🚀 Бот запущен (Версия 18 - iOS Keyboard Fix)!'));
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
