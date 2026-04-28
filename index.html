@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FORMA | Магазин мебели</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    
     <style>
         :root { --bg: #ffffff; --text: #1a1a1a; --hint: #8e8e93; --accent: #f9f9f9; --red: #ff5252; }
         body { background: var(--bg); color: var(--text); font-family: 'Montserrat', sans-serif; margin: 0; padding-bottom: 100px; overflow-x: hidden; }
@@ -100,10 +104,16 @@
                 <input type="tel" id="order-phone" class="custom-input" placeholder="+998 (__) ___-__-__" maxlength="19">
                 
                 <div style="display: flex; flex-direction: column;">
-                    <input type="text" id="order-address" class="custom-input" style="margin-bottom: 10px;" placeholder="Адрес (город, улица, дом)">
-                    <button onclick="getLocation()" id="loc-btn" style="margin: 0 15px 15px; background: #e0e0e0; color: #333; border: none; border-radius: 10px; padding: 12px; font-weight: 600; font-family: 'Montserrat', sans-serif; cursor: pointer;">
-                        📍 Указать текущую геопозицию
+                    <input type="text" id="order-address" class="custom-input" style="margin-bottom: 10px;" placeholder="Адрес или локация">
+                    
+                    <button onclick="toggleMap()" id="loc-btn" style="margin: 0 15px 15px; background: #007bff; color: white; border: none; border-radius: 10px; padding: 12px; font-weight: 600; font-family: 'Montserrat', sans-serif; cursor: pointer;">
+                        📍 Выбрать точку на карте
                     </button>
+
+                    <div id="map-container" style="display:none; margin: 0 15px 15px; height: 300px; border-radius: 15px; overflow: hidden; border: 1px solid #ddd; position: relative;">
+                        <div id="map" style="height: 100%; width: 100%;"></div>
+                        <button onclick="confirmLocation()" style="position: absolute; bottom: 15px; left: 50%; transform: translateX(-50%); z-index: 1000; background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.2);">✅ Подтвердить точку</button>
+                    </div>
                 </div>
 
             </div>
@@ -167,38 +177,56 @@
     phoneInput.addEventListener('focus', function(e) {
         if (!e.target.value) e.target.value = '+998 ';
     });
-// Найди функцию getLocation() в своем index.html и замени её на эту:
-function getLocation() {
-    const btn = document.getElementById('loc-btn');
-    btn.innerText = "⏳ Определение (до 5 сек)...";
-    
-    // Параметры для быстрого поиска
-    const options = {
-        enableHighAccuracy: false, // Отключаем высокую точность для скорости
-        timeout: 5000,             // Ждем не больше 5 секунд
-        maximumAge: 0
-    };
 
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition((position) => {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            // ИСПРАВЛЕННАЯ ССЫЛКА
-            const mapLink = `https://www.google.com/maps?q=${lat},${lon}`;
-            document.getElementById('order-address').value = mapLink;
-            
-            btn.innerText = "✅ Локация добавлена";
-            btn.style.background = "#d4edda";
-            tg.HapticFeedback.notificationOccurred('success');
-        }, (error) => {
-            console.log(error);
-            btn.innerText = "❌ Не удалось определить";
-            tg.showAlert("Не удалось быстро найти координаты. Пожалуйста, введите адрес вручную.");
-        }, options);
-    } else {
-        tg.showAlert("Геолокация не поддерживается");
+    // 🟢 ИНТЕРАКТИВНАЯ КАРТА LEAFLET
+    let map;
+    let marker;
+    let selectedCoords = null;
+
+    function toggleMap() {
+        const container = document.getElementById('map-container');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            initMap();
+            // Фикс для правильного отображения карты в скрытом div
+            setTimeout(() => { if(map) map.invalidateSize(); }, 100); 
+        } else {
+            container.style.display = 'none';
+        }
     }
-}
+
+    function initMap() {
+        if (map) return;
+
+        // Ташкент по умолчанию
+        map = L.map('map').setView([41.311081, 69.240562], 12);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        map.on('click', function(e) {
+            if (marker) {
+                marker.setLatLng(e.latlng);
+            } else {
+                marker = L.marker(e.latlng, {draggable: true}).addTo(map);
+            }
+            selectedCoords = e.latlng;
+        });
+    }
+
+    function confirmLocation() {
+        if (selectedCoords) {
+            const link = `https://www.google.com/maps?q=$${selectedCoords.lat},${selectedCoords.lng}`;
+            document.getElementById('order-address').value = link;
+            document.getElementById('map-container').style.display = 'none';
+            document.getElementById('loc-btn').innerText = "✅ Точка на карте выбрана";
+            document.getElementById('loc-btn').style.background = "#28a745";
+            tg.HapticFeedback.notificationOccurred('success');
+        } else {
+            tg.showAlert("Сначала кликните на карту, чтобы поставить метку.");
+        }
+    }
 
     function nav(pageId, el) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -364,7 +392,6 @@ function getLocation() {
             return;
         }
 
-        // 🟢 СТРОГАЯ ПРОВЕРКА НОМЕРА ПЕРЕД ОПЛАТОЙ
         const rawPhone = document.getElementById('order-phone').value.replace(/\D/g, '');
         if (rawPhone.length !== 12 || !rawPhone.startsWith('998')) {
             tg.showAlert("Пожалуйста, введите корректный номер телефона Узбекистана (формат: +998...)");
@@ -390,7 +417,6 @@ function getLocation() {
         };
         saveOrderToLocal(order);
 
-        // Отправляем данные в бота
         const data = {
             products: cart,
             totalPrice: final,
