@@ -49,34 +49,16 @@
         
         #keyboard-spacer { height: 10px; transition: height 0.3s ease; }
 
-        /* 🟢 СТИЛИ ДЛЯ МОДАЛЬНОГО ОКНА ТОВАРА */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5); z-index: 2000; display: none;
-            align-items: flex-end; justify-content: center;
-            opacity: 0; transition: opacity 0.3s;
-        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: none; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity 0.3s; }
         .modal-overlay.show { opacity: 1; display: flex; }
-        .product-modal {
-            background: #fff; width: 100%; max-height: 85vh; border-radius: 30px 30px 0 0;
-            padding: 20px; box-sizing: border-box; overflow-y: auto;
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
+        .product-modal { background: #fff; width: 100%; max-height: 85vh; border-radius: 30px 30px 0 0; padding: 20px; box-sizing: border-box; overflow-y: auto; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
         .modal-overlay.show .product-modal { transform: translateY(0); }
-        .close-modal {
-            position: absolute; top: 15px; right: 20px; font-size: 24px; color: var(--hint);
-            cursor: pointer; background: #eee; width: 30px; height: 30px; 
-            display: flex; align-items: center; justify-content: center; border-radius: 50%;
-        }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 24px; color: var(--hint); cursor: pointer; background: #eee; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
         .modal-img { width: 100%; height: 250px; object-fit: cover; border-radius: 20px; margin-bottom: 15px; }
         .modal-title { font-size: 20px; font-weight: 600; margin: 0 0 10px 0; }
         .modal-price { font-size: 18px; font-weight: 600; color: #000; margin-bottom: 15px; }
         .modal-desc { font-size: 13px; line-height: 1.6; color: #555; margin-bottom: 20px; white-space: pre-wrap; }
-        .add-to-cart-btn {
-            background: #000; color: #fff; width: 100%; padding: 16px;
-            border: none; border-radius: 15px; font-size: 16px; font-weight: 600;
-            font-family: 'Montserrat', sans-serif; cursor: pointer; transition: 0.2s;
-        }
+        .add-to-cart-btn { background: #000; color: #fff; width: 100%; padding: 16px; border: none; border-radius: 15px; font-size: 16px; font-weight: 600; font-family: 'Montserrat', sans-serif; cursor: pointer; transition: 0.2s; }
         .add-to-cart-btn:active { transform: scale(0.98); }
     </style>
 </head>
@@ -127,11 +109,13 @@
                     <option value="15">Доставка (+$15)</option>
                 </select>
 
-                <div class="section-header" style="padding-top: 0; padding-bottom: 5px;"><h2>Контакты и Примечание</h2></div>
-                <input type="tel" id="order-phone" class="custom-input" placeholder="+998 (__) ___-__-__" maxlength="19">
-                <input type="text" id="order-note" class="custom-input" placeholder="Примечание (ориентир, код двери и т.д.)">
+                <div class="section-header" style="padding-top: 0; padding-bottom: 5px;"><h2>Детали доставки</h2></div>
+                <input type="tel" id="order-phone" class="custom-input" placeholder="+998 (__) ___-__-__" maxlength="19" value="+998 ">
+                <input type="text" id="order-address-text" class="custom-input" placeholder="Улица, дом (ввести вручную)">
+                <input type="text" id="order-note" class="custom-input" placeholder="Примечание (квартира, подъезд, домофон)">
+                
                 <p style="font-size: 11px; color: var(--hint); text-align: center; margin-top: -5px; padding: 0 20px;">
-                    Если нужна доставка, бот запросит геолокацию на следующем шаге.
+                    Вы сможете отправить точную гео-точку на карте в следующем шаге.
                 </p>
 
                 <div id="keyboard-spacer"></div>
@@ -152,7 +136,7 @@
             <img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=800&q=80" class="about-img">
             <div style="padding: 25px;">
                 <h2 style="margin-top: 0;">FORMA Studio</h2>
-                <p style="line-height: 1.6; color: #444;">Мы создаем мебель, которая меняет пространство. Наша философия — это сочетание скандинавского минимализма и исключительного комфорта.</p>
+                <p style="line-height: 1.6; color: #444;">Мы создаем мебель, которая меняет пространство.</p>
                 <div style="background: var(--accent); padding: 20px; border-radius: 20px; margin-top: 20px;">
                     <div style="margin-bottom: 10px;"><b>📍 Адрес:</b> г. Ташкент, ул. Интерьерная, 12</div>
                     <div style="margin-bottom: 10px;"><b>📞 Телефон:</b> +998 90 123-45-67</div>
@@ -164,7 +148,7 @@
 
     <div id="product-modal-overlay" class="modal-overlay" onclick="closeProductModal(event)">
         <div class="product-modal" onclick="event.stopPropagation()">
-            <div class="close-modal" onclick="closeProductModal()">&times;</div>
+            <div class="close-modal" onclick="closeProductModal()">×</div>
             <img id="modal-img" src="" class="modal-img">
             <h2 id="modal-title" class="modal-title">Название</h2>
             <div id="modal-price" class="modal-price">$ 0</div>
@@ -185,48 +169,20 @@
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // 🟢 БАЗА ТОВАРОВ С ОПИСАНИЯМИ
     const products = [
-        { 
-            id: 'sofa_classic', 
-            name: 'Диван "Classic Velvet"', 
-            price: 1200, 
-            image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80', 
-            category: 'sofas',
-            description: 'Элегантный трехместный диван в обивке из премиального велюра. Идеально подходит для просторных гостиных. \n\n• Материал: Велюр, массив дуба\n• Размеры: 220x90x85 см\n• Наполнитель: Высокоэластичный пенополиуретан\n• Гарантия: 2 года'
-        },
-        { 
-            id: 'chair_wood', 
-            name: 'Кресло "Scandi Oak"', 
-            price: 450, 
-            image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=400&q=80', 
-            category: 'chairs',
-            description: 'Минималистичное кресло в скандинавском стиле. Эргономичная спинка обеспечивает комфортную поддержку позвоночника. \n\n• Материал: Массив ясеня, рогожка\n• Размеры: 75x80x95 см\n• Особенности: Съемный чехол сиденья'
-        },
-        { 
-            id: 'bed_king', 
-            name: 'Кровать "Grand Hotel"', 
-            price: 1800, 
-            image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=400&q=80', 
-            category: 'beds',
-            description: 'Роскошная двуспальная кровать с высоким мягким изголовьем. Создает атмосферу пятизвездочного отеля в вашей спальне. \n\n• Спальное место: 180x200 см\n• Подъемный механизм: Есть\n• Ящик для белья: Объем 400 литров\n*Матрас продается отдельно.'
-        },
-        { 
-            id: 'mirror_gold', 
-            name: 'Зеркало "Royal Gold"', 
-            price: 210, 
-            image: 'https://images.unsplash.com/photo-1582582621959-48d27397dc69?auto=format&fit=crop&w=400&q=80', 
-            category: 'mirrors',
-            description: 'Напольное зеркало в изящной металлической раме цвета матового золота. Визуально расширяет пространство. \n\n• Размеры: 170x60 см\n• Рама: Алюминий\n• Особенности: Можно повесить на стену или прислонить'
-        }
+        { id: 'sofa_classic', name: 'Диван "Classic Velvet"', price: 1200, image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=400&q=80', category: 'sofas', description: 'Элегантный диван. \n\n• Размеры: 220x90x85 см' },
+        { id: 'chair_wood', name: 'Кресло "Scandi Oak"', price: 450, image: 'https://images.unsplash.com/photo-1592078615290-033ee584e267?auto=format&fit=crop&w=400&q=80', category: 'chairs', description: 'Минималистичное кресло.' },
+        { id: 'bed_king', name: 'Кровать "Grand Hotel"', price: 1800, image: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=400&q=80', category: 'beds', description: 'Двуспальная кровать.' },
+        { id: 'mirror_gold', name: 'Зеркало "Royal Gold"', price: 210, image: 'https://images.unsplash.com/photo-1582582621959-48d27397dc69?auto=format&fit=crop&w=400&q=80', category: 'mirrors', description: 'Напольное зеркало.' }
     ];
 
     let cart = {};
     let currentCategory = 'all';
     let discount = 0;
-    let currentProductId = null; // Для модального окна
+    let currentProductId = null;
 
     const phoneInput = document.getElementById('order-phone');
+    const addressInput = document.getElementById('order-address-text');
     const noteInput = document.getElementById('order-note');
     const spacer = document.getElementById('keyboard-spacer');
 
@@ -247,7 +203,10 @@
         if (!e.target.value) e.target.value = '+998 ';
         handleFocus(e);
     });
+    
     phoneInput.addEventListener('blur', handleBlur);
+    addressInput.addEventListener('focus', handleFocus);
+    addressInput.addEventListener('blur', handleBlur);
     noteInput.addEventListener('focus', handleFocus);
     noteInput.addEventListener('blur', handleBlur);
 
@@ -268,51 +227,39 @@
         updateMainButton();
     }
 
-    // 🟢 ОБНОВЛЕННЫЙ РЕНДЕР (Теперь клик открывает попап, а не сразу корзину)
     function render(containerId, items) {
         const container = document.getElementById(containerId);
         container.innerHTML = '';
-        if(items.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:var(--hint); grid-column:span 2;">Ничего не найдено</p>';
-            return;
-        }
+        if(items.length === 0) return container.innerHTML = '<p style="text-align:center; color:var(--hint); grid-column:span 2;">Ничего не найдено</p>';
         items.forEach(p => {
             const div = document.createElement('div');
             div.className = 'product-card';
-            div.onclick = () => openProductModal(p.id); // <--- ИЗМЕНЕНИЕ ЗДЕСЬ
+            div.onclick = () => openProductModal(p.id);
             div.innerHTML = `<img src="${p.image}" class="product-img"><div class="p-name">${p.name}</div><div class="p-price">$ ${p.price}</div>`;
             container.appendChild(div);
         });
     }
 
-    // 🟢 ФУНКЦИИ МОДАЛЬНОГО ОКНА
     function openProductModal(id) {
         const p = products.find(prod => prod.id === id);
         if (!p) return;
-        
         currentProductId = p.id;
         document.getElementById('modal-img').src = p.image;
         document.getElementById('modal-title').innerText = p.name;
         document.getElementById('modal-price').innerText = `$ ${p.price}`;
         document.getElementById('modal-desc').innerText = p.description;
-        
         document.getElementById('product-modal-overlay').classList.add('show');
         tg.HapticFeedback.selectionChanged();
     }
 
     function closeProductModal(event) {
-        // Если клик был не по самой подложке (а например по карточке), ничего не делаем
         if (event && event.target.id !== 'product-modal-overlay' && !event.target.classList.contains('close-modal')) return;
-        
         document.getElementById('product-modal-overlay').classList.remove('show');
         currentProductId = null;
     }
 
     function addFromModal() {
-        if (currentProductId) {
-            addToCart(currentProductId);
-            closeProductModal();
-        }
+        if (currentProductId) { addToCart(currentProductId); closeProductModal(); }
     }
 
     function filterCategory(cat, el) {
@@ -324,38 +271,18 @@
 
     function searchProducts() {
         const query = document.getElementById('search-input').value.toLowerCase();
-        const results = products.filter(p => p.name.toLowerCase().includes(query));
-        render('search-results', results);
+        render('search-results', products.filter(p => p.name.toLowerCase().includes(query)));
     }
 
-    function addToCart(id) {
-        cart[id] = (cart[id] || 0) + 1;
-        tg.HapticFeedback.notificationOccurred('success');
-        updateMainButton();
-    }
-
-    function changeQty(id, delta) {
-        cart[id] = (cart[id] || 0) + delta;
-        if (cart[id] < 0) cart[id] = 0;
-        renderCart();
-    }
+    function addToCart(id) { cart[id] = (cart[id] || 0) + 1; tg.HapticFeedback.notificationOccurred('success'); updateMainButton(); }
+    function changeQty(id, delta) { cart[id] = Math.max((cart[id] || 0) + delta, 0); renderCart(); }
 
     function applyPromo() {
         const code = document.getElementById('promo-input').value.trim().toUpperCase();
         const msg = document.getElementById('promo-msg');
-        if (code === 'FORMA10') {
-            discount = 0.10;
-            msg.style.color = 'green';
-            msg.innerText = 'Скидка 10% применена!';
-            tg.HapticFeedback.notificationOccurred('success');
-        } else {
-            discount = 0;
-            msg.style.color = 'var(--red)';
-            msg.innerText = 'Неверный код';
-            tg.HapticFeedback.notificationOccurred('error');
-        }
-        msg.style.display = 'block';
-        updateMainButton();
+        if (code === 'FORMA10') { discount = 0.10; msg.style.color = 'green'; msg.innerText = 'Скидка 10% применена!'; tg.HapticFeedback.notificationOccurred('success'); } 
+        else { discount = 0; msg.style.color = 'var(--red)'; msg.innerText = 'Неверный код'; tg.HapticFeedback.notificationOccurred('error'); }
+        msg.style.display = 'block'; updateMainButton();
     }
 
     function renderCart() {
@@ -372,53 +299,26 @@
                 if (!p) continue;
                 const itemDiv = document.createElement('div');
                 itemDiv.style = "display: flex; align-items: center; justify-content: space-between; background: #f9f9f9; padding: 15px; border-radius: 20px; margin-bottom: 10px;";
-                itemDiv.innerHTML = `
-                    <img src="${p.image}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 15px;">
-                    <div style="flex-grow: 1;">
-                        <div style="font-size: 14px; font-weight: 600;">${p.name}</div>
-                        <div style="font-size: 12px; color: var(--hint);">$ ${p.price}</div>
-                    </div>
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button>
-                        <span>${cart[id]}</span>
-                        <button onclick="changeQty('${id}', 1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">+</button>
-                    </div>
-                `;
+                itemDiv.innerHTML = `<img src="${p.image}" style="width: 50px; height: 50px; border-radius: 10px; object-fit: cover; margin-right: 15px;"><div style="flex-grow: 1;"><div style="font-size: 14px; font-weight: 600;">${p.name}</div><div style="font-size: 12px; color: var(--hint);">$ ${p.price}</div></div><div style="display: flex; align-items: center; gap: 10px;"><button onclick="changeQty('${id}', -1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">-</button><span>${cart[id]}</span><button onclick="changeQty('${id}', 1)" style="border:none; background:#ddd; border-radius:5px; width:25px; height:25px;">+</button></div>`;
                 container.appendChild(itemDiv);
             }
         }
         
-        if (hasItems) {
-            emptyMsg.style.display = 'none';
-            checkoutForm.style.display = 'block';
-        } else {
-            emptyMsg.style.display = 'block';
-            checkoutForm.style.display = 'none';
-            discount = 0;
-            document.getElementById('promo-msg').style.display = 'none';
-        }
+        if (hasItems) { emptyMsg.style.display = 'none'; checkoutForm.style.display = 'block'; } 
+        else { emptyMsg.style.display = 'block'; checkoutForm.style.display = 'none'; discount = 0; document.getElementById('promo-msg').style.display = 'none'; }
         updateMainButton();
     }
 
     function updateMainButton() {
         let total = 0;
-        for (let id in cart) {
-            const p = products.find(prod => prod.id === id);
-            if(p) total += p.price * cart[id];
-        }
-        
+        for (let id in cart) { const p = products.find(prod => prod.id === id); if(p) total += p.price * cart[id]; }
         if (total > 0) {
-            const isCartActive = document.getElementById('cart').classList.contains('active');
-            if (isCartActive) {
+            if (document.getElementById('cart').classList.contains('active')) {
                 let final = (total - (total * discount)) + (parseFloat(document.getElementById('delivery-method').value) || 0);
                 tg.MainButton.setText(`ОФОРМИТЬ: $ ${final.toFixed(2)}`);
-            } else {
-                tg.MainButton.setText(`В КОРЗИНУ (${total} $)`);
-            }
+            } else { tg.MainButton.setText(`В КОРЗИНУ (${total} $)`); }
             tg.MainButton.show();
-        } else {
-            tg.MainButton.hide();
-        }
+        } else { tg.MainButton.hide(); }
     }
 
     function saveOrderToLocal(order) {
@@ -428,45 +328,27 @@
     }
 
     tg.MainButton.onClick(() => {
-        const isCartActive = document.getElementById('cart').classList.contains('active');
-        if (!isCartActive) {
-            nav('cart', document.querySelectorAll('.nav-item')[2]);
-            return;
-        }
+        if (!document.getElementById('cart').classList.contains('active')) return nav('cart', document.querySelectorAll('.nav-item')[2]);
 
         const rawPhone = document.getElementById('order-phone').value.replace(/\D/g, '');
-        if (rawPhone.length !== 12 || !rawPhone.startsWith('998')) {
-            tg.showAlert("Пожалуйста, введите корректный номер телефона Узбекистана (формат: +998...)");
-            return;
-        }
+        if (rawPhone.length !== 12 || !rawPhone.startsWith('998')) return tg.showAlert("Пожалуйста, введите корректный номер телефона (формат: +998...)");
 
-        let total = 0;
-        let itemsStr = [];
-        for (let id in cart) {
-            const p = products.find(prod => prod.id === id);
-            if(p && cart[id] > 0) {
-                total += p.price * cart[id];
-                itemsStr.push(`${p.name} (x${cart[id]})`);
-            }
-        }
+        let total = 0; let itemsStr = [];
+        for (let id in cart) { const p = products.find(prod => prod.id === id); if(p && cart[id] > 0) { total += p.price * cart[id]; itemsStr.push(`${p.name} (x${cart[id]})`); } }
         const delivery = parseFloat(document.getElementById('delivery-method').value) || 0;
         const final = (total - (total * discount)) + delivery;
 
-        const order = {
-            date: new Date().toLocaleString(),
-            items: itemsStr.join(', '),
-            total: final.toFixed(2)
-        };
-        saveOrderToLocal(order);
+        saveOrderToLocal({ date: new Date().toLocaleString(), items: itemsStr.join(', '), total: final.toFixed(2) });
 
-        const data = {
+        // 🟢 Собираем все данные, включая текстовый адрес
+        tg.sendData(JSON.stringify({
             products: cart,
             totalPrice: final,
             customerPhone: document.getElementById('order-phone').value,
+            deliveryAddressText: document.getElementById('order-address-text').value,
             deliveryNote: document.getElementById('order-note').value,
             deliveryMethod: document.getElementById('delivery-method').options[document.getElementById('delivery-method').selectedIndex].text
-        };
-        tg.sendData(JSON.stringify(data));
+        }));
     });
 
     render('grid', products);
